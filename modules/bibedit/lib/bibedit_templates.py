@@ -21,7 +21,8 @@
 
 __revision__ = "$Id$"
 
-from invenio.config import CFG_SITE_URL, CFG_SITE_LANG
+from invenio.config import CFG_SITE_URL, CFG_SITE_LANG, \
+    CFG_BIBEDIT_INTEGRATE_WITH_BIBCIRC
 from invenio.messages import gettext_set_language
 from urllib import quote
 
@@ -192,14 +193,32 @@ class Template:
             }
 
         holdingpenpanel = '<div class="bibEditMenuSectionHeader">\n' \
-                            '          %(imgCompressMenuSection)sHolding Pen\n' \
-                            '<table class="bibEditMenuMore">\n<tr><td>' \
-                            '   <div id="bibEditHoldingPenToolbar"> '  \
-                            '      <div id="bibeditHPChanges"></div>' \
-                            ' </div> </td></tr></table>' \
-                            '        </div>\n'  %{ 'imgCompressMenuSection': imgCompressMenuSection,
-                                                  }
-#                            self.holdingPenPanel(CFG_SITE_LANG)
+            '          %(imgCompressMenuSection)sHolding Pen\n' \
+            '<table class="bibEditMenuMore">\n<tr><td>' \
+            '   <div id="bibEditHoldingPenToolbar"> '  \
+            '      <div id="bibeditHPChanges"></div>' \
+            ' </div> </td></tr></table>' \
+            '        </div>\n'  % \
+            { 'imgCompressMenuSection': imgCompressMenuSection }
+
+        if CFG_BIBEDIT_INTEGRATE_WITH_BIBCIRC:
+            bibcirculationpanel = \
+                '      <div class="bibEditMenuSection" ' \
+                ' id="bibEditBibCircConnection">\n' \
+                '<div class="bibEditMenuSectionHeader">\n' \
+                '          %(imgCompressMenuSection)sBibCirculation\n' \
+                '    <table class="bibEditMenuMore">\n<tr><td ' \
+                ' class="bibEditBibCircPanel">' \
+                '    Number of copies: ' \
+                '       <div id="bibEditBibCirculationCopies">0</div><br/>' \
+                '    <button id="bibEditBibCirculationBtn">' \
+                'Edit physical copies</button>' \
+                ' </td></tr></table></div></div>' \
+                % {
+                    'imgCompressMenuSection': imgCompressMenuSection,
+                }
+        else:
+            bibcirculationpanel = ''
 
         lnkhelp = img('/img/help.png', '', style='vertical-align: bottom') + \
             link('Help', href='#', onclick='window.open(' \
@@ -211,7 +230,7 @@ class Template:
             '      <div class="bibEditMenuSection">\n' \
             '        %(recordmenu)s\n' \
             '      </div>\n' \
-            '      <div class="bibEditMenuSection">\n' \
+            '      <div clabss="bibEditMenuSection">\n' \
             '        %(fieldmenu)s\n' \
             '      </div>\n' \
             '      <div class="bibEditMenuSection">\n' \
@@ -226,6 +245,7 @@ class Template:
             '      <div class="bibEditMenuSection">\n' \
             '        %(historymenu)s\n' \
             '      </div>\n' \
+            '        %(circulationmenu)s\n' \
             '      <div id="bibEditMenuSection">\n' \
             '        %(statusarea)s\n' \
             '      </div>\n' \
@@ -240,7 +260,8 @@ class Template:
                 'lnkhelp': lnkhelp,
                 'holdingpenpanel': holdingpenpanel,
                 'historymenu': historymenu,
-                'undoredosection': undoredosection
+                'undoredosection': undoredosection,
+                'circulationmenu': bibcirculationpanel
                 }
 
     def history_comparebox(self, ln, revdate, revdate_cmp, comparison):

@@ -2957,6 +2957,16 @@ div.subtitle {
         background-image:url(drop_down_menu_arrow_down_b.gif)
 }
 
+.snippetbox {
+    margin-left:10px;
+    color: #000000;
+    background: #cccccc;
+    border: solid 1px #000000;
+}
+
+
+/*Styles used inside BibEdit*/
+
 .bibeditHPCorrection{
     border-width: 1px;
     background-color: #FAEBD7;
@@ -2974,11 +2984,11 @@ div.subtitle {
     max-height: 150px;
 }
 
-
 .bibeditHPHiddenElement{
     visibility: hidden;
     display: none;
 }
+
 .bibeditHPPanelEntry{
     border-width: 1px;
     border-style: dotted;
@@ -3005,6 +3015,7 @@ div.subtitle {
     width:20%;
     margin:0px;
 }
+
 .bibeditHPEntryNumber{
     display: table-cell;
     width: 80%;
@@ -3021,6 +3032,7 @@ div.subtitle {
     display: table-cell;
     width: 20%;
 }
+
 .bibeditHPInformationsSection{
 
 }
@@ -3046,22 +3058,15 @@ div.subtitle {
 }
 
 .bibeditHPEntryCol2{
-	display: table-cell;
-	max-width: 28px;
-	min-width: 28px;
-	margin: 0px;
+    display: table-cell;
+    max-width: 28px;
+    min-width: 28px;
+    margin: 0px;
 }
 
 .bibeditHPPanelEntryDisabled {
     background-color: #eeeeee;
     color: #BBBBBB;
-}
-
-.snippetbox {
-    margin-left:10px;
-    color: #000000;
-    background: #cccccc;
-    border: solid 1px #000000;
 }
 
 .bibEditRevHistorySelectedEntry{
@@ -3173,4 +3178,9 @@ div.subtitle {
 .bibEditURDescEntrySelected{
     background-color: #aaaaaa;
 }
+
+.bibEditBibCircPanel{
+    font-weight: normal;
+}
+
 /* end of cds.css */

@@ -676,5 +676,16 @@ def generate_email_body(template, loan_id):
     return out
 
 def create_item_details_url(recid, ln):
-    url = '/admin/bibcirculation/bibcirculationadmin.py/get_item_details?ln=%s&recid=%s' % (ln, str(recid))
-    return CFG_SITE_URL+url
+    """
+    Generate the URL redirecting to the edition of record copies
+
+    @param recid: The identifier of the record
+    @type recid: int
+
+    @param ln: The language identifier
+    @type ln: string
+
+    @return A string being the URL allowing to edit currently viewed record
+    """
+    return "/admin/bibcirculation/bibcirculationadmin.py/get_item_details?ln=%s&recid=%i" % (ln, int(recid), )
+
