@@ -3183,4 +3183,30 @@ div.subtitle {
     font-weight: normal;
 }
 
+.bibHarvestPagerNavigationBar{
+    display: table-row;
+}
+
+.bibHarvestPagerNavigationLink{
+    display: table-cell;
+    padding: 5px;
+    cursor: default;
+}
+
+.bibHarvestPagerHiddenNavigationLink{
+    display: none;
+}
+
+.bibHarvestPagerHiddenPage{
+    display: none;
+}
+
+.bibHarvestPagerCurrentPageLink{
+    background-color: #a0a0ff;
+}
+
+.bibHarvestPagerPage{
+
+}
+
 /* end of cds.css */

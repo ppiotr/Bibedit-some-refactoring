@@ -259,8 +259,8 @@ class Template:
 
         out = """
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_holdings').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -502,8 +502,8 @@ class Template:
         else:
             out += """<br />
                       <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                      <script src="/js/jquery.js" type="text/javascript"></script>
-                      <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                      <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                      <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                       <script type="text/javascript">
                       $(document).ready(function() {
                         $('#table_loans').tablesorter()
@@ -604,8 +604,8 @@ class Template:
                    <div class="bibcirctop">
                    <br />
                    <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                   <script src="/js/jquery.js" type="text/javascript"></script>
-                   <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                   <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                   <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                    <script type="text/javascript">
                    $(document).ready(function() {
                         $('#table_requests').tablesorter()
@@ -691,8 +691,8 @@ class Template:
         out = """<div class="bibcirctop_bottom">
                     <br /> <br />
                     <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                    <script src="/js/jquery.js" type="text/javascript"></script>
-                    <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                    <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                    <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                     <script type="text/javascript">
                     $(document).ready(function() {
                         $('#table_hist').tablesorter()
@@ -861,10 +861,10 @@ class Template:
         more_6_months = (today + gap).strftime('%Y-%m-%d')
 
         out = """
-        <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-        <link rel=\"stylesheet\" href=\"%s/img/jquery-ui.css\" type=\"text/css\" />
-        <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-        <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+        <style type="text/css"> @import url("/img/jquery/tablesorter.css"); </style>
+        <link rel=\"stylesheet\" href=\"%s/img/jquery/jquery-ui.css\" type=\"text/css\" />
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
         <form name="request_form" action="%s/record/%s/holdings/send" method="get" >
         <br />
@@ -883,8 +883,8 @@ class Template:
               <td>
 
                 <script type="text/javascript">
-                    $(function(){
-                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                    $(function() {
+                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                 </script>
                 <input type="text" size="12" id="date_picker1" name="period_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -897,7 +897,7 @@ class Template:
 
                  <script type="text/javascript">
                     $(function() {
-                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                 </script>
                 <input type="text" size="12" id="date_picker2" name="period_to" value="%s" style='border: 1px solid #cfcfcf'>
@@ -1004,12 +1004,12 @@ class Template:
         out = _MENU_
 
         out += """
-            <style type="text/css"> @import url("/js/tablesorter/themes/blue/style.css"); </style>
-            <style type="text/css"> @import url("/js/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/themes/blue/style.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
 
-            <script src="/js/jquery.min.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.min.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function(){
                 $("#table_all_loans")
@@ -1108,7 +1108,7 @@ class Template:
                  <td>%s</td>
                  <td>%s</td>
                  <td algin='center'>
-                 <input type="button" value='%s' style="background: url(/img/dialog-cancel.png)
+                 <input type="button" value='%s' style="background: url(/img/jquery/dialog-cancel.png)
                  no-repeat; width: 75px; text-align: right;"
                  onClick="confirmation()"
                  onmouseover="this.className='bibcircbuttonover'" onmouseout="this.className='bibcircbutton'"
@@ -1190,12 +1190,12 @@ class Template:
         out = _MENU_
 
         out += """
-            <style type="text/css"> @import url("/js/tablesorter/themes/blue/style.css"); </style>
-            <style type="text/css"> @import url("/js/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/themes/blue/style.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
 
-            <script src="/js/jquery.min.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.min.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function(){
                 $("#table_all_loans")
@@ -1295,7 +1295,7 @@ class Template:
                  <td>%s</td>
                  <td>%s</td>
                  <td align="center">
-                 <input type="button" value='%s' style="background: url(/img/dialog-cancel.png)
+                 <input type="button" value='%s' style="background: url(/img/jquery/dialog-cancel.png)
                  no-repeat; width: 75px; text-align: right;"
                  onClick="confirmation()"
                  class="bibcircbutton">
@@ -1633,8 +1633,8 @@ class Template:
             <div class="infoboxmsg">%s</div>
             <br />
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_requests').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -1693,7 +1693,7 @@ class Template:
                   <td>%s</td>
                   <td>
                     <input type=button onClick="confirmation()" value='%s' class="bibcircbutton"
-                    style="background: url(/img/dialog-cancel.png) no-repeat; width: 75px; text-align: right;">
+                    style="background: url(/img/jquery/dialog-cancel.png) no-repeat; width: 75px; text-align: right;">
 
                  <input type=button onClick="location.href='%s/admin/bibcirculation/bibcirculationadmin.py/update_next_loan_request_status?check_id=%s&barcode=%s'"
                  value='%s' class="bibcircbutton" style="background: url(/img/dialog-yes.png) no-repeat; width: 125px; text-align: right;"></td>
@@ -2246,8 +2246,8 @@ class Template:
                           </tr>
                 </table>
 
-                <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-                <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
                 <table class="tablesorter" border="0" cellpadding="0" cellspacing="1">
                 <thead>
@@ -2292,7 +2292,7 @@ class Template:
                     <td width="130" class="bibcirccontent">
                     <script type="text/javascript">
                         $(function() {
-                            $("%s").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("%s").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                         });
                     </script>
                     <input type="text" size="12" id="%s" name="due_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -2663,8 +2663,8 @@ class Template:
         else:
             out += """
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_requests').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -2829,8 +2829,8 @@ class Template:
 
         out += """
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_copies').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3078,8 +3078,8 @@ class Template:
             out += """<div class="bibcircbottom">
                     <br /> <br />
                     <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                    <script src="/js/jquery.js" type="text/javascript"></script>
-                    <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                    <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                    <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                     <script type="text/javascript">
                       $(document).ready(function() {
                         $('#table_requests').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3165,8 +3165,8 @@ class Template:
         else:
             out += """<div class="bibcircbottom">
                       <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                      <script src="/js/jquery.js" type="text/javascript"></script>
-                      <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                      <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                      <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                       <script type="text/javascript">
                         $(document).ready(function() {
                           $('#table_loans').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3270,8 +3270,8 @@ class Template:
             out += """
              <div class="bibcircbottom">
              <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_holdings').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3358,8 +3358,8 @@ class Template:
 
         out += """<div class="bibcircbottom">
                   <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-                  <script src="/js/jquery.js" type="text/javascript"></script>
-                  <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+                  <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+                  <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
                   <script type="text/javascript">
                   $(document).ready(function() {
                     $('#table_loans').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3799,8 +3799,8 @@ class Template:
         else:
             out += """
          <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-         <script src="/js/jquery.js" type="text/javascript"></script>
-         <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+         <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+         <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
          <script type="text/javascript">
            $(document).ready(function() {
              $('#table_requests').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -3850,7 +3850,7 @@ class Template:
                  <td>%s</td>
                  <td>%s</td>
                  <td align="center">
-                 <input type="button" value='%s' style="background: url(/img/dialog-cancel.png)
+                 <input type="button" value='%s' style="background: url(/img/jquery/dialog-cancel.png)
                  no-repeat; width: 75px; text-align: right;"
                  onClick="location.href='%s/admin/bibcirculation/bibcirculationadmin.py/get_pending_requests?request_id=%s'"
                  onmouseover="this.className='bibcircbuttonover'" onmouseout="this.className='bibcircbutton'"
@@ -3909,8 +3909,8 @@ class Template:
         <div class="bibcircbottom">
 
         <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-        <script src="/js/jquery.js" type="text/javascript"></script>
-        <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
         <script type="text/javascript">
         $(document).ready(function() {
           $('#table_loans').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -4052,12 +4052,12 @@ class Template:
         out += _MENU_
 
         out += """
-            <style type="text/css"> @import url("/js/tablesorter/themes/blue/style.css"); </style>
-            <style type="text/css"> @import url("/js/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/themes/blue/style.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
 
-            <script src="/js/jquery.min.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.min.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function(){
                 $("#table_all_loans")
@@ -4232,12 +4232,12 @@ class Template:
         out += _MENU_
 
         out += """
-            <style type="text/css"> @import url("/js/tablesorter/themes/blue/style.css"); </style>
-            <style type="text/css"> @import url("/js/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/themes/blue/style.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
 
-            <script src="/js/jquery.min.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.min.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function(){
                 $("#table_all_loans")
@@ -4521,9 +4521,9 @@ class Template:
         out += """
             <br />
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#tablesorter-loans')
@@ -4644,8 +4644,8 @@ class Template:
             out += """
             <div class="bibcircbottom">
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_loans').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -6477,8 +6477,8 @@ class Template:
 
         out += """
            <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-           <script src="/js/jquery.js" type="text/javascript"></script>
-            <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+           <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function() {
               $('#table_copies').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -7917,15 +7917,15 @@ class Template:
 
         out += """
 
-            <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-            <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
             <table class="bibcirctable">
               <tr align="left">
                 <td width="230" class="bibcirctableheader">%s
                     <script type="text/javascript">
                         $(function(){
-                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                         });
                     </script>
                     <input type="text" size="12" id="date_picker1" name="period_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -8414,8 +8414,8 @@ class Template:
 
         out += """
 
-        <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-        <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
         <form name="request_form" action="%s/admin/bibcirculation/bibcirculationadmin.py/create_new_request_step4" method="get" >
         <div class="bibcircbottom">
@@ -8435,7 +8435,7 @@ class Template:
 
                 <script type="text/javascript">
                     $(function(){
-                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                 </script>
                 <input type="text" size="12" id="date_picker1" name="period_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -8451,7 +8451,7 @@ class Template:
 
                 <script type="text/javascript">
                     $(function(){
-                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                 </script>
                 <input type="text" size="12" id="date_picker2" name="period_to" value="%s" style='border: 1px solid #cfcfcf'>
@@ -8901,8 +8901,8 @@ class Template:
 
         out += """
 
-                <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-                <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
 
                 <table class="bibcirctable">
@@ -8917,7 +8917,7 @@ class Template:
 
                     <script type="text/javascript">
                     $(function(){
-                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                     </script>
                     <input type="text" size="12" id="date_picker1" name="period_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -8930,7 +8930,7 @@ class Template:
 
                     <script type="text/javascript">
                     $(function(){
-                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                     </script>
                     <input type="text" size="12" id="date_picker2" name="period_to" value="%s" style='border: 1px solid #cfcfcf'>
@@ -9359,8 +9359,8 @@ class Template:
 
         out += """
 
-                <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-                <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+                <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
                 <table class="bibcirctable">
                   <tr class="bibcirctableheader">
@@ -9377,7 +9377,7 @@ class Template:
                     <td align='left'>
                     <script type="text/javascript">
                     $(function(){
-                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                        $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                     });
                 </script>
                 <input type="text" size="12" id="date_picker1" name="due_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -9454,7 +9454,7 @@ class Template:
 
         out += """
            <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-           <script type="text/javascript" src="/js/jquery.validate.js"></script>
+           <script type="text/javascript" src="/js/jquery/jquery.validate.js"></script>
            <script>
              $(document).ready(function(){
                $('#order_new_copy_step1_form').validate();
@@ -9524,8 +9524,8 @@ class Template:
 
         out += """
 
-        <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-        <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
              <table class="bibcirctable">
                 <tr>
@@ -9585,7 +9585,7 @@ class Template:
                     <td>
                         <script type="text/javascript">
                         $(function(){
-                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                         });
                         </script>
                         <input type="text" size="12" id="date_picker1" name="order_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -9597,7 +9597,7 @@ class Template:
 
                        <script type="text/javascript">
                         $(function(){
-                            $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                         });
                         </script>
                         <input type="text" size="12" id="date_picker2" name="expected_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -9860,8 +9860,8 @@ class Template:
 
         out += """
         <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-        <script src="/js/jquery.js" type="text/javascript"></script>
-        <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
         <script type="text/javascript">
            $(document).ready(function() {
               $('#table_orders').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -11028,8 +11028,8 @@ class Template:
 
         out += """
         <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-        <script src="/js/jquery.js" type="text/javascript"></script>
-        <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
         <script type="text/javascript">
         $(document).ready(function() {
           $('#table_ill').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -11141,8 +11141,8 @@ class Template:
 
         out += """
             <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-            <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-            <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
             """% (CFG_SITE_URL, CFG_SITE_URL)
 
         (_borrower_id, borrower_name, borrower_email, borrower_mailbox,
@@ -11636,7 +11636,7 @@ class Template:
 
                         <script type="text/javascript">
                              $(function() {
-                                 $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                                 $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                              });
                         </script>
                         <input type="text" size="10" id="date_picker1" name="request_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -11649,7 +11649,7 @@ class Template:
 
                         <script type="text/javascript">
                              $(function() {
-                                 $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                                 $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                              });
                         </script>
                         <input type="text" size="10" id="date_picker2" name="expected_date" value="%s" style='border: 1px solid #cfcfcf'>
@@ -14338,8 +14338,8 @@ class Template:
         conditions_link = """<a href="http://library.web.cern.ch/library/Library/ill_faq.html" target="_blank">conditions</a>"""
 
         out += """
-        <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-        <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+        <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
              <table class="bibcirctable">
                 <tr align="center">
@@ -14353,7 +14353,7 @@ class Template:
 
                         <script type="text/javascript">
                              $(function() {
-                                 $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                                 $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                              });
                          </script>
                          <input type="text" size="10" id="date_picker1" name="period_of_interest_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -14376,7 +14376,7 @@ class Template:
 
                         <script type="text/javascript">
                              $(function() {
-                                 $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                                 $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                              });
                          </script>
                          <input type="text" size="10" id="date_picker2" name="period_of_interest_to" value="%s" style='border: 1px solid #cfcfcf'>
@@ -15019,8 +15019,8 @@ class Template:
 
         out += """
         <style type="text/css"> @import url("/img/tablesorter.css"); </style>
-        <script src="/js/jquery.js" type="text/javascript"></script>
-        <script src="/js/jquery.tablesorter.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.js" type="text/javascript"></script>
+        <script src="/js/jquery/jquery.tablesorter.js" type="text/javascript"></script>
         <script type="text/javascript">
         $(document).ready(function() {
           $('#table_ill').tablesorter({widthFixed: true, widgets: ['zebra']})
@@ -15262,12 +15262,12 @@ class Template:
         else:
 
             out += """
-            <style type="text/css"> @import url("/js/tablesorter/themes/blue/style.css"); </style>
-            <style type="text/css"> @import url("/js/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/themes/blue/style.css"); </style>
+            <style type="text/css"> @import url("/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.css"); </style>
 
-            <script src="/js/jquery.min.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-            <script src="/js/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
+            <script src="/js/jquery/jquery.min.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
+            <script src="/js/jquery/tablesorter/addons/pager/jquery.tablesorter.pager.js" type="text/javascript"></script>
             <script type="text/javascript">
             $(document).ready(function(){
                 $("#table_requests")
@@ -15345,7 +15345,7 @@ class Template:
                   <td>%s</td>
                   <td>%s</td>
                   <td algin='center'>
-                    <input type="button" value='%s' style="background: url(/img/dialog-cancel.png)
+                    <input type="button" value='%s' style="background: url(/img/jquery/dialog-cancel.png)
                         no-repeat; width: 75px; text-align: right;"
                         onClick="confirmation(%s)"
                         onmouseover="this.className='bibcircbuttonover'" onmouseout="this.className='bibcircbutton'"
@@ -16172,8 +16172,8 @@ class Template:
         #conditions_link = """<a href="http://library.web.cern.ch/library/Library/ill_faq.html" target="_blank">conditions</a>"""
 
         out += """
-            <script type="text/javascript" language='JavaScript' src="%s/js/jquery.min.js"></script>
-            <script type="text/javascript" language='JavaScript' src="%s/js/ui.datepicker.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.min.js"></script>
+            <script type="text/javascript" language='JavaScript' src="%s/js/jquery/jquery.ui.datepicker.min.js"></script>
 
              <table class="bibcirctable">
                 <tr align="center">
@@ -16186,7 +16186,7 @@ class Template:
                 <td>
                         <script type="text/javascript">
                             $(function(){
-                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("#date_picker1").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                             });
                         </script>
                         <input type="text" size="12" id="date_picker1" name="period_of_interest_from" value="%s" style='border: 1px solid #cfcfcf'>
@@ -16197,7 +16197,7 @@ class Template:
                 <td>
                         <script type="text/javascript">
                             $(function(){
-                            $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/calendar.gif", buttonImageOnly: true});
+                            $("#date_picker2").datepicker({dateFormat: 'yy-mm-dd', showOn: 'button', buttonImage: "%s/img/jquery/calendar.gif", buttonImageOnly: true});
                             });
                         </script>
                         <input type="text" size="12" id="date_picker2" name="period_of_interest_to" value="%s" style='border: 1px solid #cfcfcf'>

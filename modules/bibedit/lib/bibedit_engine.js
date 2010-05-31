@@ -265,6 +265,7 @@ function initMisc(){
 
   //Initialising the BibCircualtion integration plugin
   $("#bibEditBibCirculationBtn").bind("click", onBibCirculationBtnClicked);
+
 }
 
 

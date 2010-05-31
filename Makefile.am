@@ -32,6 +32,36 @@ JSMATHFONTS = jsMath-fonts-$(JSMFV).zip
 FCKV = 2.6.6
 FCKEDITOR = FCKeditor_$(FCKV).zip
 
+# used jQuery version
+JQUERYV = 1.4.2
+JQUERYUIV = 1.8.1
+
+# The following parameter indicates if we should use
+
+JQUERYUSEUNIFORMURL = 1
+
+# Attention: both files and directories are listen in the following variables
+
+JQUERYPLUGINSFILES_JS = jquery.min.js jquery.effects.core.min.js \
+	jquery.effects.highlight.min.js jquery.jeditable.mini.js \
+	jquery.tablesorter.js jquery.tablesorter.pager.js \
+	jquery.ui.datepicker.min.js jquery.autogrow.js \
+	json2.js jquery.uploadify.min.js jquery.ui.slider.min.js \
+	jquery.ui.sortable.min.js tablesorter jquery.hotkeys.min.js \
+	jquery-treeview jquery.ajaxPager.js jquery.form.js jquery.ui.core.js
+
+# Files and directories that are temporary and should be made sure to be removed after the installation
+# of jQuery plugins
+
+JQUERYPLUGINSFILES_JS_TEMPORARY = jquery.tablesorter.zip uploadify jquery.uploadify-v2.1.0.zip
+
+JQUERYPLUGINSFILES_IMG = cancel.png uploadify.css uploadify.swf \
+	uploadify.allglyphs.swf uploadify.fla
+
+JQUERYPLUGINSURL = http://cdsware.cern.ch/download/jquery
+
+WGET = wget -N
+
 all:
 	@echo "****************************************************"
 	@echo "** CDS Invenio has been successfully built.       **"
@@ -141,23 +171,80 @@ uninstall-jscalendar-plugin:
 	@echo "** The jsCalendar plugin was successfully uninstalled.   **"
 	@echo "***********************************************************"
 
-install-jquery-plugins: install-jquery-plugins
+
+install-jquery-plugins:
+	@echo "***********************************************************"
+	@echo "** Installing various jQuery plugins, please wait...     **"
+	@echo "***********************************************************"
+	(mkdir -p ${prefix}/var/www/js/jquery && \
+	cd ${prefix}/var/www/js/jquery && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.effects.core.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.effects.highlight.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ui.slider.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ui.sortable.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.jeditable.mini.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.form.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.uploadify.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.autogrow.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/json2.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ui.datepicker.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.hotkeys-0.7.8-packed.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.hotkeys.min.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ajaxPager.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ui.core.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery.ui.widget.js && \
+	${WGET} ${JQUERYPLUGINSURL}/js/jquery-treeview.tgz && \
+	tar -zxf jquery-treeview.tgz && \
+	rm jquery-treeview.tgz && \
+	${WGET} ${JQUERYPLUGINSURL}/js/tablesorter.tgz && \
+	tar -zxf tablesorter.tgz && \
+	rm tablesorter.tgz \
+	) && ( \
+	mkdir -p ${prefix}/var/www/img/jquery && \
+	cd ${prefix}/var/www/img/jquery && \
+	${WGET} ${JQUERYPLUGINSURL}/img/jquery-ui.css && \
+	${WGET} ${JQUERYPLUGINSURL}/img/calendar.gif && \
+	${WGET} ${JQUERYPLUGINSURL}/img/cancel.png && \
+	${WGET} ${JQUERYPLUGINSURL}/img/uploadify.allglyphs.swf && \
+	${WGET} ${JQUERYPLUGINSURL}/img/uploadify.css && \
+	${WGET} ${JQUERYPLUGINSURL}/img/uploadify.fla && \
+	${WGET} ${JQUERYPLUGINSURL}/img/uploadify.swf && \
+	${WGET} ${JQUERYPLUGINSURL}/img/jquery-ui.tgz && \
+	tar -zxf jquery-ui.tgz && \
+	rm jquery-ui.tgz && \
+	${WGET} ${JQUERYPLUGINSURL}/img/jquery-images.tgz && \
+	tar -zxf jquery-images.tgz && \
+	rm jquery-images.tgz \
+	) && \
+	echo "***********************************************************" && \
+	echo "** The jQuery plugins were successfully installed.       **" && \
+	echo "***********************************************************" || \
+	(echo "***********************************************************"&& \
+	echo "** ERROR: The jQuery plugins installation failed.        **" && \
+	echo "***********************************************************" && \
+	(cd ${prefix}/var/www/js && \
+	rm -rf $(JQUERYPLUGINSFILES_JS)) && \
+	(cd ${prefix}/var/www/img && \
+	rm -rf $(JQUERYPLUGINSFILES_IMG)) && \
+	exit 1)
+
+install-jquery-plugins-old: install-jquery-plugins-old
 	@echo "***********************************************************"
 	@echo "** Installing various jQuery plugins, please wait...     **"
 	@echo "***********************************************************"
 	mkdir -p ${prefix}/var/www/js
 	(cd ${prefix}/var/www/js && \
-	wget http://jqueryjs.googlecode.com/files/jquery-1.3.1.min.js && \
-	mv jquery-1.3.1.min.js jquery.min.js && \
-	wget http://jquery-ui.googlecode.com/svn/tags/latest/ui/minified/jquery.effects.core.min.js && \
-	wget http://jquery-ui.googlecode.com/svn/tags/latest/ui/minified/jquery.effects.highlight.min.js && \
-	wget http://jquery-ui.googlecode.com/svn/tags/1.7.3/ui/minified/ui.slider.min.js && \
-	wget http://jquery-ui.googlecode.com/svn/tags/1.7.3/ui/minified/ui.sortable.min.js && \
-	wget http://www.appelsiini.net/download/jquery.jeditable.mini.js && \
-	wget http://github.com/malsup/form/raw/master/jquery.form.js && \
-	wget http://plugins.jquery.com/files/jquery.autogrow-1.2.2.zip && \
-	wget http://tablesorter.com/jquery.tablesorter.zip && \
-	wget http://www.uploadify.com/_files/jquery.uploadify-v2.1.0.zip && \
+	wget -O jquery.min.js http://ajax.googleapis.com/ajax/libs/jquery/$(JQUERYV)/jquery.min.js && \
+	wget -O jquery.effects.core.min.js http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/ui/minified/jquery.effects.core.min.js && \
+	wget -O jquery.effects.highlight.min.js http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/ui/minified/jquery.effects.highlight.min.js && \
+	wget -O jquery.ui.slider.min.js http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/ui/minified/jquery.ui.slider.min.js  && \
+	wget -O jquery.ui.sortable.min.js http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/ui/minified/jquery.ui.sortable.min.js && \
+	wget -O jquery.jeditable.mini.js http://www.appelsiini.net/download/jquery.jeditable.mini.js && \
+	wget -O jquery.form.js http://github.com/malsup/form/raw/master/jquery.form.js && \
+	wget -O jquery.autogrow-1.2.2.zip http://plugins.jquery.com/files/jquery.autogrow-1.2.2.zip && \
+	wget -O jquery.tablesorter.zip http://tablesorter.com/jquery.tablesorter.zip && \
+	wget -O jquery.uploadify-v2.1.0.zip http://www.uploadify.com/_files/jquery.uploadify-v2.1.0.zip && \
 	unzip jquery.tablesorter.zip && \
 	rm jquery.tablesorter.zip && \
 	unzip -u jquery.uploadify-v2.1.0.zip -d uploadify && \
@@ -170,50 +257,41 @@ install-jquery-plugins: install-jquery-plugins
 	wget -O json2.js.tmp http://json.org/json2.js && \
 	grep -v 'alert.*IMPORTANT: Remove this line' json2.js.tmp > json2.js && \
 	rm json2.js.tmp && \
-	wget http://jquery-ui.googlecode.com/svn/tags/1.7.3/ui/minified/ui.datepicker.min.js && \
+	wget http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/ui/minified/jquery.ui.datepicker.min.js && \
 	wget -O jquery.hotkeys.min.js http://js-hotkeys.googlecode.com/files/jquery.hotkeys-0.7.8-packed.js && \
 	wget http://plugins.jquery.com/files/jquery.treeview_3.zip && \
 	unzip jquery.treeview_3.zip && \
 	rm jquery.treeview_3.zip && \
 	wget http://plugins.jquery.com/files/jquery.ajaxPager.js_5.txt && \
 	mv jquery.ajaxPager.js_5.txt jquery.ajaxPager.js && \
-	wget http://jqueryui.com/download/jquery-ui-1.7.3.custom.zip && \
-	unzip jquery-ui-1.7.3.custom.zip development-bundle/ui/ui.core.js && \
-	mv development-bundle/ui/ui.core.js ui.core.js && \
+	wget http://jqueryui.com/download/jquery-ui-$(JQUERYUIV).custom.zip && \
+	unzip jquery-ui-$(JQUERYUIV).custom.zip development-bundle/ui/jquery.ui.core.js && \
+	mv development-bundle/ui/jquery.ui.core.js jquery.ui.core.js && \
 	rm -rf development-bundle && \
-	rm jquery-ui-1.7.3.custom.zip)
+	rm jquery-ui-$(JQUERYUIV).custom.zip) && \
 	mkdir -p ${prefix}/var/www/img && \
 	(cd ${prefix}/var/www/img && \
-	wget -r -np -nH --cut-dirs=4 -A "png,css" -P jquery-ui/themes http://jquery-ui.googlecode.com/svn/tags/1.7.3/themes/base/ && \
-	wget http://jquery-ui.googlecode.com/svn/tags/1.7.3/themes/redmond/jquery-ui.css && \
-	wget http://jquery-ui.googlecode.com/svn/tags/1.7.3/demos/images/calendar.gif && \
-	wget -r -np -nH --cut-dirs=5 -A "png" http://jquery-ui.googlecode.com/svn/tags/1.7.3/themes/redmond/images/)
-	@echo "***********************************************************"
-	@echo "** The jQuery plugins were successfully installed.       **"
-	@echo "***********************************************************"
+	wget -r -np -nH --cut-dirs=4 -A "png,css" -P jquery-ui/themes http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/themes/base/ && \
+	wget http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/themes/redmond/jquery-ui.css && \
+	wget http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/demos/images/calendar.gif && \
+	wget -r -np -nH --cut-dirs=5 -A "png" http://jquery-ui.googlecode.com/svn/tags/$(JQUERYUIV)/themes/redmond/images/) &&\
+	echo "***********************************************************" && \
+	echo "** The jQuery plugins were successfully installed.       **" && \
+	echo "***********************************************************" || \
+	(echo "***********************************************************"&& \
+	echo "** ERROR: The jQuery plugins installation failed.        **" && \
+	echo "***********************************************************" && \
+	(cd ${prefix}/var/www/js && \
+	rm -rf $(JQUERYPLUGINSFILES_JS)) && \
+	(cd ${prefix}/var/www/img && \
+	rm -rf $(JQUERYPLUGINSFILES_IMG)) &&\
+	exit 1)
 
 uninstall-jquery-plugins:
 	(cd ${prefix}/var/www/js && \
-	rm -f jquery.min.js && \
-	rm -f jquery.effects.core.min.js && \
-	rm -f jquery.effects.highlight.min.js && \
-	rm -f jquery.jeditable.mini.js && \
-	rm -f jquery.tablesorter.js && \
-	rm -f jquery.tablesorter.pager.js && \
-	rm -f ui.datepicker.min.js && \
-	rm -f jquery.autogrow.js && \
-	rm -f json2.js && \
-	rm -f jquery.uploadify.min.js && \
-	rm -f jquery.ui.slider.min.js && \
-	rm -f jquery.ui.sortable.min.js && \
-	rm -rf tablesorter && \
-	rm -f jquery.hotkeys.min.js && \
-	rm -rf jquery-treeview && \
-	rm -f jquery.ajaxPager.js && \
-	rm -f jquery.form.js && \
-	rm -f ui.core.js) && \
+	rm -rf $(JQUERYPLUGINSFILES_JS)) && \
 	(cd ${prefix}/var/www/img && \
-	rm -f cancel.png uploadify.css uploadify.swf uploadify.allglyphs.swf uploadify.fla)
+	rm -rf $(JQUERYPLUGINSFILES_IMG))
 	@echo "***********************************************************"
 	@echo "** The jquery plugins were successfully uninstalled.     **"
 	@echo "***********************************************************"
