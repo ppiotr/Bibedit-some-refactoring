@@ -1195,7 +1195,6 @@ function onGetRecordSuccess(json){
   adjustGeneralHPControlsVisibility();
 
   createReq({recID: gRecID, requestType: 'getTickets'}, onGetTicketsSuccess);
-
 }
 
 function onGetTemplateSuccess(json) {

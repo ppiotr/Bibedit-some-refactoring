@@ -841,6 +841,7 @@ WSGIRestrictStdout Off
         CustomLog %(logdir)s/apache.log combined
         DirectoryIndex index.en.html index.html
         Alias /img/ %(webdir)s/img/
+        Alias /css/ %(webdir)s/css/
         Alias /js/ %(webdir)s/js/
         Alias /export/ %(webdir)s/export/
         Alias /jsMath/ %(webdir)s/jsMath/
@@ -910,6 +911,7 @@ WSGIRestrictStdout Off
         CustomLog %(logdir)s/apache-ssl.log combined
         DirectoryIndex index.en.html index.html
         Alias /img/ %(webdir)s/img/
+        Alias /css/ %(webdir)s/css/
         Alias /js/ %(webdir)s/js/
         Alias /export/ %(webdir)s/export/
         Alias /jsMath/ %(webdir)s/jsMath/
