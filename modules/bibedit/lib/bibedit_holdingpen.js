@@ -266,20 +266,30 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
   var addFieldChangesToRemove = {};
   var addFieldChangesToDraw = {};
 
-  for (changeInd in gHoldingPenChanges){
-    tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
-    if (gHoldingPenChanges[changeInd].change_type == "field_added"){
+  //TODO: Piotr: rewrite using the forEach functionality !
+  //  for (changeInd in gHoldingPenChanges){
+  for (changeInd in gHoldingPenChangesManager.getChanges()){
+      //    tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
+    tagsToRedraw[gHoldingPenChangesManager.getChange(changeInd).tag] = true;
+    //    if (gHoldingPenChanges[changeInd].change_type == "field_added"){
+    if (gHoldingPenChangesManager.getChange(changeInd).change_type == "field_added"){
       addFieldChangesToRemove[changeInd] = true;
     }
   }
 
-  gHoldingPenChanges = changesBefore;
+  //gHoldingPenChanges = changesBefore;
+  gHoldingPenChangesManager.setChanges(changesBefore);
 
-  for (changeInd in gHoldingPenChanges){
-    tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
-    if (gHoldingPenChanges[changeInd].change_type == "field_added"){
+  //TODO: Piotr: rewrte using the forEach functionality
+  //  for (changeInd in gHoldingPenChanges){
+  for (changeInd in gHoldingPenChangesManager.getChanges()){
+    //tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
+    tagsToRedraw[gHoldingPenChangesmanager.getchange(changeInd).tag] = true;
+    //if (gHoldingPenChanges[changeInd].change_type == "field_added"){
+    if (gHoldingPenChangesManager.getChange(changeInd).change_type == "field_added"){
       // the changes that are not displayed at the moment but should be
-      if (gHoldingPenChanges[changeInd].applied_change !== true){
+      //if (gHoldingPenChanges[changeInd].applied_change !== true){
+      if (gHoldingPenChangesManager.getChange(changeInd).applied_change !== true){
         addFieldChangesToDraw[changeInd] = true;
       }
     }
@@ -317,14 +327,19 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
 function visualizeRetrievedChangeset(changesetNumber, newRecordData, isRedo){
   // first checking if there are already some changes loaded -> if so, wait
   var canPass = true;
-  for (ind in gHoldingPenChanges){
-    if (gHoldingPenChanges[ind].applied_change !== true){ // undefined or false
+  // TODO: Piotr: rewrite using forEach functionality
+  //  for (ind in gHoldingPenChanges){
+  //  for (ind in gHoldingPenChanges){
+  for (ind in gHoldingPenChangesManager.getChanges()){
+    //if (gHoldingPenChanges[ind].applied_change !== true){ // undefined or false
+    if (gHoldingPenChangesManager.getChange(ind).applied_change !== true){ // undefined or false
       canPass = false;
     }
   }
 
   if (canPass) {
-    var oldChangesList = gHoldingPenChanges;
+    //    var oldChangesList = gHoldingPenChanges;
+    var oldChangesList = gHoldingPenChangesManager.getChanges();
     // we want to get rid of some changes that are obviously invalid,
     // such as removal of the record number
     var newChangesList = filterChanges(compareRecords(gRecord, newRecordData));
@@ -362,14 +377,15 @@ function prepareVisualizeChangeset(changesetNumber, newChangesList, undoHandler)
    */
 
 
-  gHoldingPenChanges = [];
-
+    //  gHoldingPenChanges = [];
+  gHoldingPenChangesManager.clear();
   $("#holdingPenPreview_" + changesetNumber).remove();
 
   // now producing the controls allowing to apply the change
   for (change in newChangesList) {
-    changePos = gHoldingPenChanges.length;
-    gHoldingPenChanges[changePos] = newChangesList[change];
+      //    changePos = gHoldingPenChanges.length;
+      //    gHoldingPenChanges[changePos] = newChangesList[change];
+    var changePos = gHoldingPenChangesManager.addChange(newChangesList[change]);
     addChangeControl(changePos);
   }
 
@@ -378,7 +394,8 @@ function prepareVisualizeChangeset(changesetNumber, newChangesList, undoHandler)
   adjustGeneralHPControlsVisibility();
   return {
     hpChanges: {
-      toOverride: gHoldingPenChanges,
+      // toOverride: gHoldingPenChanges
+      toOverride: gHoldingPenChangesManager.getChanges(),
       changesetsToDeactivate : [changesetNumber]
     },
     requestType: 'otherUpdateRequest',
@@ -441,18 +458,23 @@ function holdingPenPanelApplyChangeSet(changesNum){
  */
 
 function prepareHPFieldChangedUndoHandler(changeNo){
-    var tag = gHoldingPenChanges[changeNo].tag;
-  var fieldPos = gHoldingPenChanges[changeNo].field_position;
-
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  //  var tag = gHoldingPenChanges[changeNo].tag;
+  //  var fieldPos = gHoldingPenChanges[changeNo].field_position;
+  var tag = change.tag;
+  var fieldPos = change.field_position;
   var oldInd1 = gRecord[tag][fieldPos][1];
   var oldInd2 = gRecord[tag][fieldPos][2];
   var oldSubfields = gRecord[tag][fieldPos][0];
   var oldIsControlField = gRecord[tag][fieldPos][3] !== "";
   var oldValue = gRecord[tag][fieldPos][3];
 
-  var newInd1 = gHoldingPenChanges[changeNo].indicators[0];
-  var newInd2 = gHoldingPenChanges[changeNo].indicators[1];
-  var newSubfields = gHoldingPenChanges[changeNo].field_content;
+  //var newInd1 = gHoldingPenChanges[changeNo].indicators[0];
+  //var newInd2 = gHoldingPenChanges[changeNo].indicators[1];
+  //var newSubfields = gHoldingPenChanges[changeNo].field_content;
+  var newInd1 = change.indicators[0];
+  var newInd2 = change.indicators[1];
+  var newSubfields = change.field_content;
   var newIsControlField = false;
   var newValue = "";
 
@@ -467,9 +489,15 @@ function prepareHPFieldChangedUndoHandler(changeNo){
 }
 
 function prepareHPSubfieldRemovedUndoHandler(changeNo){
-  var tag = gHoldingPenChanges[changeNo].tag;
-  var fieldPos = gHoldingPenChanges[changeNo].field_position;
-  var sfPos = gHoldingPenChanges[changeNo].subfield_position;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  //var tag = gHoldingPenChanges[changeNo].tag;
+  //var fieldPos = gHoldingPenChanges[changeNo].field_position;
+  //var sfPos = gHoldingPenChanges[changeNo].subfield_position;
+
+  var tag = change.tag;
+  var fieldPos = change.field_position;
+  var sfPos = change.subfield_position;
+
 
   var toDelete = {};
   var sfToDelete = {};
@@ -486,9 +514,14 @@ function prepareHPSubfieldRemovedUndoHandler(changeNo){
 }
 
 function prepareSubfieldRemovedRequest(changeNo){
-  var fieldId = gHoldingPenChanges[changeNo].tag;
-  var fieldPos = gHoldingPenChanges[changeNo].field_position;
-  var sfPos = gHoldingPenChanges[changeNo].subfield_position;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+
+  //  var fieldId = gHoldingPenChanges[changeNo].tag;
+  //var fieldPos = gHoldingPenChanges[changeNo].field_position;
+  //var sfPos = gHoldingPenChanges[changeNo].subfield_position;
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
+  var sfPos = change.subfield_position;
 
   var toDelete = {};
   toDelete[fieldId] = {};
@@ -506,8 +539,11 @@ function prepareSubfieldRemovedRequest(changeNo){
 }
 
 function prepareHPFieldRemovedUndoHandler(changeNo){
-  var tag = gHoldingPenChanges[changeNo].tag;
-  var fieldPos = gHoldingPenChanges[changeNo].field_position;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  //  var tag = gHoldingPenChanges[changeNo].tag;
+  //var fieldPos = gHoldingPenChanges[changeNo].field_position;
+  var tag = change.tag;
+  var fieldPos = change.field_position;
 
   var toDelete = {};
   var fToDelete = {};
@@ -521,8 +557,11 @@ function prepareHPFieldRemovedUndoHandler(changeNo){
 }
 
 function prepareFieldRemovedRequest(changeNo){
-  var fieldId = gHoldingPenChanges[changeNo]["tag"];
-  var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  //  var fieldId = gHoldingPenChanges[changeNo]["tag"];
+  //var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
 
   var toDelete = {};
   toDelete[fieldId] = {};
@@ -541,21 +580,34 @@ function prepareFieldRemovedRequest(changeNo){
 }
 
 function prepareHPSubfieldAddedUndoHandler(changeNo){
-  var tag = gHoldingPenChanges[changeNo]["tag"];
-  var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  var sfCode = gHoldingPenChanges[changeNo]["subfield_code"];
-  var sfValue = gHoldingPenChanges[changeNo]["subfield_content"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+
+  //  var tag = gHoldingPenChanges[changeNo]["tag"];
+  //var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+  //var sfCode = gHoldingPenChanges[changeNo]["subfield_code"];
+  //var sfValue = gHoldingPenChanges[changeNo]["subfield_content"];
+  var tag = change.tag;
+  var fieldPos = change.field_position;
+  var sfCode = change.subfield_code;
+  var sfValue = change.subfield_content;
   var subfields =  [[sfCode, sfValue]];
   var origHandler = prepareUndoHandlerAddSubfields(tag, fieldPos, subfields);
   return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
 }
 
 function prepareSubfieldAddedRequest(changeNo){
-  var fieldId = gHoldingPenChanges[changeNo]["tag"];
-  var indicators = gHoldingPenChanges[changeNo]["indicators"];
-  var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  var sfType = gHoldingPenChanges[changeNo]["subfield_code"];
-  var content = gHoldingPenChanges[changeNo]["subfield_content"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+
+  //  var fieldId = gHoldingPenChanges[changeNo]["tag"];
+  //var indicators = gHoldingPenChanges[changeNo]["indicators"];
+  //var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+  //var sfType = gHoldingPenChanges[changeNo]["subfield_code"];
+  //var content = gHoldingPenChanges[changeNo]["subfield_content"];
+  var fieldId = change.tag;
+  var indicators = change.indicators;
+  var fieldPos = change.field_position;
+  var sfType = change.subfield_code;
+  var content = change.subfield_content;
 
   gRecord[fieldId][fieldPos][0].push([sfType, content]);
 
@@ -571,7 +623,8 @@ function prepareSubfieldAddedRequest(changeNo){
 }
 
 function prepareFieldChangedRequest(changeNumber, undoHandler){
-  var change = gHoldingPenChanges[changeNumber];
+    //  var change = gHoldingPenChanges[changeNumber];
+  var change = gHoldingPenChangesManager.getChange(changeNumber);
 
   var tag = change.tag;
   var indicators = change.indicators;
@@ -607,26 +660,33 @@ function getFullFieldContentFromHPChange(changeNo){
        an empty object is returned in case of passing unsupported
        type of Holding Pen change
    */
+  var change = gHoldingPenChangesManager.getChange(changeNo);
 
-  var chT = gHoldingPenChanges[changeNo]["change_type"];
+  //  var chT = gHoldingPenChanges[changeNo]["change_type"];
+  var chT = change.change_type;
   if (chT != "subfield_changed" && chT != "field_added" &&
       chT != "field_changed"){
       return {};
   }
 
-  var indicators = gHoldingPenChanges[changeNo]["indicators"];
+  //  var indicators = gHoldingPenChanges[changeNo]["indicators"];
+  var indicators = change.indicators;
   var result = {};
 
-  result.tag = gHoldingPenChanges[changeNo].tag;
+  //  result.tag = gHoldingPenChanges[changeNo].tag;
+  result.tag = change.tag;
   result.ind1 = (indicators[0] == '_') ? " " : indicators[0];
   result.ind2 = (indicators[1] == '_') ? " " : indicators[1];
   if (chT == "subfield_changed"){
-    result.subfields = [[gHoldingPenChanges[changeNo].subfield_code,
-                         gHoldingPenChanges[changeNo].subfield_content]];
+    //    result.subfields = [[gHoldingPenChanges[changeNo].subfield_code,
+    //                   gHoldingPenChanges[changeNo].subfield_content]];
+    result.subfields = [[change.subfield_code,
+                         change.subfield_content]];
   }
   if (chT == "field_added" || chT == "field_changed"){
-    result.subfields = subfields = gHoldingPenChanges[changeNo].
-      field_content;
+    //    result.subfields = subfields = gHoldingPenChanges[changeNo].
+    // field_content;
+    result.subfields = subfields = change.field_content;
   }
   result.isControlField = false;
   result.value = "";
@@ -693,11 +753,19 @@ function prepareFieldAddedRequest(changeNo){
 function prepareSubfieldChangedRequest(changeNo){
   /** a wrapper around getUpdateSubfieldValueRequestData, providing the values
    from the change*/
-  var tag = gHoldingPenChanges[changeNo].tag;
-  var fieldPosition = gHoldingPenChanges[changeNo].field_position;
-  var subfieldIndex = gHoldingPenChanges[changeNo].subfield_position;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+
+  //  var tag = gHoldingPenChanges[changeNo].tag;
+  //var fieldPosition = gHoldingPenChanges[changeNo].field_position;
+  //var subfieldIndex = gHoldingPenChanges[changeNo].subfield_position;
+  //var subfieldCode = gRecord[tag][fieldPosition][0][subfieldIndex][0];
+  //var value = gHoldingPenChanges[changeNo].subfield_content;
+
+  var tag = change.tag;
+  var fieldPosition = change.field_position;
+  var subfieldIndex = change.subfield_position;
   var subfieldCode = gRecord[tag][fieldPosition][0][subfieldIndex][0];
-  var value = gHoldingPenChanges[changeNo].subfield_content;
+  var value = change.subfield_content;
 
   gRecord[tag][fieldPosition][0][subfieldIndex][1] = value;
 
@@ -717,10 +785,16 @@ function applySubfieldChanged(changeNo){
   }
 
   if (gCurrentStatus == "ready") {
-    var tag = gHoldingPenChanges[changeNo].tag;
-    var fieldPos = gHoldingPenChanges[changeNo].field_position;
-    var sfPos = gHoldingPenChanges[changeNo].subfield_position;
-    var content = gHoldingPenChanges[changeNo].subfield_content;
+    var change = gHoldingPenChangesManager.getChange(changeNo);
+    //var tag = gHoldingPenChanges[changeNo].tag;
+    //var fieldPos = gHoldingPenChanges[changeNo].field_position;
+    //var sfPos = gHoldingPenChanges[changeNo].subfield_position;
+    //var content = gHoldingPenChanges[changeNo].subfield_content;
+    var tag = change.tag;
+    var fieldPos = change.field_position;
+    var sfPos = change.subfield_position;
+    var content = change.subfield_content;
+
     var sfCode = gRecord[tag][fieldPos][0][sfPos][0];
     var oldContent = gRecord[tag][fieldPos][0][sfPos][1];
     gRecord[tag][fieldPos][0][sfPos][1] = content; // changing the local copy
@@ -762,9 +836,16 @@ function applyFieldRemoved(changeNo){
     return;
   }
   if (gCurrentStatus == "ready") {
-    var fieldId = gHoldingPenChanges[changeNo]["tag"];
-    var indicators = gHoldingPenChanges[changeNo]["indicators"];
-    var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+    var change = gHoldingPenChangesManager.getChange(changeNo);
+
+    //var fieldId = gHoldingPenChanges[changeNo]["tag"];
+    //var indicators = gHoldingPenChanges[changeNo]["indicators"];
+    //var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+    var fieldId = change.tag;
+    var indicators = change.indicators;
+    var fieldPos = change.field_position;
+
+
     var undoHandler = prepareHPFieldRemovedUndoHandler(changeNo);
     var data = prepareFieldRemovedRequest(changeNo);
     data.undoRedo = undoHandler;
@@ -775,17 +856,20 @@ function applyFieldRemoved(changeNo){
     });
 
     // now the position of the fields has changed. We have to fix all teh references inside the gHoldingPenChanges
-      for (change in gHoldingPenChanges) {
-        if ((gHoldingPenChanges[change]["tag"] == fieldId) &&
-        (gHoldingPenChanges[change]["indicators"] == indicators)) {
-          if (gHoldingPenChanges[change]["field_position"] > fieldPos) {
-            gHoldingPenChanges[change]["field_position"] -= 1;
+    // TODO: Piotr: Use forEach functionality instead
+    // for (change in gHoldingPenChanges) {
+    for (changeInd in gHoldingPenChangesManager.getChanges()) {
+	var change = gHoldingPenChangesManager.getChange(changeInd);
+
+        if ((change.tag == fieldId) && (change.indicators == indicators)) {
+          if (change.field_position > fieldPos) {
+            change.field_position -= 1;
           }
-          if (gHoldingPenChanges[change]["field_position"] == fieldPos) {
+          if (change.field_position == fieldPos) {
             // there are more changes associated with this field ! They are no more correct
             // and should be removed... it is also possible to consider transforming them into add field
             // change, but seems to be an unnecessary effort
-            gHoldingPenChanges[change].applied_change = true;
+            change.applied_change = true;
           }
         }
       }
@@ -854,14 +938,15 @@ function applyFieldAdded(changeNo){
 /*** Manipulations on changes previewed in the editor */
 
 function updateInterfaceAfterChangeModification(changeNo){
-  tag = gHoldingPenChanges[changeNo]["tag"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var tag = change.tag;
   redrawFields(tag, true); // redraw the controls - skipping the field added controls
 
   reColorFields();
   // in case of add_field change being reactivated/activated, we have to display the interface
-  if (gHoldingPenChanges[changeNo].change_type == "field_added"){
-    if (gHoldingPenChanges[changeNo].applied_change == undefined ||
-        gHoldingPenChanges[changeNo].applied_change !== true){
+  if (change.change_type == "field_added"){
+    if (change.applied_change == undefined ||
+        change.applied_change !== true){
       addFieldAddedControl(changeNo);
     } else {
       // in case of the add_field action, the controls have to be removed in a different manner -
@@ -871,13 +956,15 @@ function updateInterfaceAfterChangeModification(changeNo){
   }
   adjustGeneralHPControlsVisibility();
 }
+
 function revertViewedChange(changeNo){
   /** Reverts a Holding Pen change that has been marked as removed before
       Parameters:
          changeNo - The change index in local changes array
          changeType - type of a current change (to override)
    */
-  gHoldingPenChanges[changeNo].applied_change = false;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  change.applied_change = false;
   updateInterfaceAfterChangeModification(changeNo);
 }
 
@@ -888,8 +975,8 @@ function removeViewedChange(changeNo){
    *  Parameters:
    *     changeNo - a client-side identifier of the change
    */
-
-  gHoldingPenChanges[changeNo].applied_change = true;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  change.applied_change = true;
   updateInterfaceAfterChangeModification(changeNo);
 }
 
@@ -909,8 +996,13 @@ function adjustGeneralHPControlsVisibility(){
       This bar is responsible of applying or rejecting all the visualized
       changes at once */
   var shouldDisplay = false;
-  for (changeInd in gHoldingPenChanges){
-    if (gHoldingPenChanges[changeInd].applied_change !== true){
+
+  // TODO: Piotr: should use the forEach functionality
+
+  //  for (changeInd in gHoldingPenChanges){
+  for (changeInd in gHoldingPenChangesManager.getChanges()){
+    var change = gHoldingPenChangesManager.getChange(changeInd);
+    if (change.applied_change !== true){
       shouldDisplay = true;
     }
   }
@@ -927,10 +1019,14 @@ function refreshChangesControls(){
   removeAllChangeControls();
 
   var tagsToRedraw = {};
-  for (changeInd in gHoldingPenChanges){
-    if (gHoldingPenChanges[changeInd].applied_change !== true){
+  // TODO: Piotr: Should use the forEach functionality
+
+  //  for (changeInd in gHoldingPenChanges){
+  for (changeInd in gHoldingPenChangesManager.getChanges()){
+    var change = gHoldingPenChangesManager.getChange(changeInd);
+    if (change.applied_change !== true){
       addChangeControl(changeInd);
-      tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
+      tagsToRedraw[change.tag] = true;
     }
   }
 
@@ -975,9 +1071,14 @@ function aggregateHoldingPenChanges(){
   result.changesRemoveField = [];
   result.changesRemoveSubfield = [];
 
-  for (changeNum in gHoldingPenChanges){
-    changeNumInt = parseInt(changeNum, 10);
-    changeType = gHoldingPenChanges[changeNum].change_type;
+  // TODO: Piotr: Should use the forEach functionality
+
+  //  for (changeNum in gHoldingPenChanges){
+  for (changeNum in gHoldingPenChangesManager.getChanges()){
+    var changeNumInt = parseInt(changeNum, 10);
+    var change = gHoldingPenChangesManager.getChange(changeNum);
+    var changeType = change.change_type;
+
     if ( changeType == "field_added" || changeType == "subfield_changed" ||
 	 changeType == "subfield_added" || changeType == "field_changed"){
       result.changesAddModify.push(changeNumInt);
@@ -1012,8 +1113,10 @@ function acceptAddModifyChanges(changeNumbers){
   for (changePos in changeNumbers)
   {
     var changeNum = changeNumbers[changePos];
-    var changeType = gHoldingPenChanges[changeNum].change_type;
-    result.tagsToRedraw[gHoldingPenChanges[changeNum].tag] = true;
+    var change = gHoldingPenChangesManager.getChange(changeNum);
+    var changeType = change.change_type;
+
+    result.tagsToRedraw[change.tag] = true;
     if ( changeType == "field_added"){
       var changeData = prepareFieldAddedRequest(changeNum);
       var undoHandler = prepareHPFieldAddedUndoHandler(changeNum, changeData.fieldPosition);
@@ -1022,10 +1125,10 @@ function acceptAddModifyChanges(changeNumbers){
     }
 
     if (changeType == "subfield_changed"){
-      var tag = gHoldingPenChanges[changeNum].tag;
-      var fieldPos = gHoldingPenChanges[changeNum].field_position;
-      var sfPos = gHoldingPenChanges[changeNum].subfield_position;
-      var content = gHoldingPenChanges[changeNum].subfield_content;
+      var tag = change.tag;
+      var fieldPos = change.field_position;
+      var sfPos = change.subfield_position;
+      var content = change.subfield_content;
       var sfCode = gRecord[tag][fieldPos][0][sfPos][0];
       var oldContent = gRecord[tag][fieldPos][0][sfPos][1];
 
@@ -1040,7 +1143,7 @@ function acceptAddModifyChanges(changeNumbers){
     }
 
     if ( changeType == "subfield_added"){
-      var undoHandler = prepareHPSubfieldAddedUndoHandler(changeNo);
+      var undoHandler = prepareHPSubfieldAddedUndoHandler(changeNum);
       var changeData = prepareSubfieldAddedRequest(changeNum);
       result.undoHandlers.push(undoHandler);
       result.ajaxData.push(changeData);
@@ -1076,8 +1179,8 @@ function acceptRemoveFieldChanges(changeNumbers){
 
   var changesRemoveFieldNumbersSorted = changeNumbers.sort(
       function (a, b){
-        val1 = gHoldingPenChanges[a].field_position;
-        val2 = gHoldingPenChanges[b].field_position;
+	val1 = gHoldingPenChangesManager.getChange(a).field_position;
+	val2 = gHoldingPenChangesManager.getChange(b).field_position;
         if (val1 < val2) return 1;
         else{
           if (val1 == val2)
@@ -1093,7 +1196,7 @@ function acceptRemoveFieldChanges(changeNumbers){
     var changeNum = changesRemoveFieldNumbersSorted[changePos];
     var undoHandler = prepareHPFieldRemovedUndoHandler(changeNum);
     var changeData = prepareFieldRemovedRequest(changeNum);
-    result.tagsToRedraw[gHoldingPenChanges[changeNum].tag] = true;
+    result.tagsToRedraw[gHoldingPenChangesManager.getChange(changeNum).tag] = true;
     result.undoHandlers.push(undoHandler);
     result.ajaxData.push(changeData);
   }
@@ -1122,8 +1225,8 @@ function acceptRemoveSubfieldChanges(changeNumbers){
       index */
   var changesRemoveSubfieldNumbersSorted = changeNumbers.sort(
       function (a, b){
-        val1 = gHoldingPenChanges[a].subfield_position;
-        val2 = gHoldingPenChanges[b].subfield_position;
+        val1 = gHoldingPenChangesManager.getChange(a).subfield_position;
+        val2 = gHoldingPenChangesManager.getChange(b).subfield_position;
         if (val1 < val2) return 1;
         else{
           if (val1 == val2)
@@ -1140,7 +1243,7 @@ function acceptRemoveSubfieldChanges(changeNumbers){
     var changeData = prepareSubfieldRemovedRequest(changeNum);
     result.undoHandlers.push(undoHandler);
     result.ajaxData.push(changeData);
-    result.tagsToRedraw[gHoldingPenChanges[changeNum].tag] = true;
+    result.tagsToRedraw[gHoldingPenChangesManager.getChange(changeNum).tag] = true;
   }
 
   return result;
@@ -1178,7 +1281,7 @@ function onAcceptAllChanges(){
 
   /** Now we remove all the changes visulaized in the interface */
   var removeAllChangesUndoHandler = prepareUndoHandlerRemoveAllHPChanges(
-                                  gHoldingPenChanges);
+    				 gHoldingPenChangesManager.getChanges());
   var removeAllChangesAjaxData = prepareRemoveAllAppliedChanges();
 
   /** updating the user interface after all the changes being finished in the
@@ -1235,7 +1338,7 @@ function prepareRemoveAllAppliedChanges(){
      groupped by the tag (because the tag is drawn at once)
      the requests for adding the changes are treated separately */
 
-  gHoldingPenChanges = [];
+  gHoldingPenChangesManager.clear();
   removeAllChangeControls();
   return {recID: gRecID, requestType: "otherUpdateRequest",
 	  hpChanges: {toOverride : []}};
@@ -1243,7 +1346,7 @@ function prepareRemoveAllAppliedChanges(){
 
 function onRejectAllChanges(){
   /** Rejecting all the considered changes*/
-  var undoHandler = prepareUndoHandlerRemoveAllHPChanges(gHoldingPenChanges);
+  var undoHandler = prepareUndoHandlerRemoveAllHPChanges(gHoldingPenChangesManager.getChanges());
   addUndoOperation(undoHandler);
   var ajaxData = prepareRemoveAllAppliedChanges();
   ajaxData.undoRedo = undoHandler;

@@ -225,9 +225,9 @@ def perform_request_init(uid, ln, req, lastupdated):
                           'jquery.autogrow.js', 'jquery.jeditable.mini.js',
                           'jquery.hotkeys.min.js', 'json2.js']
 
-    scripts = ['bibedit_display.js', 'bibedit_engine.js', 'bibedit_keys.js',
-               'bibedit_menu.js', 'bibedit_holdingpen.js', 'marcxml.js',
-               'bibedit_clipboard.js']
+    scripts = ['bibedit_changes.js', 'bibedit_display.js', 'bibedit_engine.js',
+               'bibedit_keys.js', 'bibedit_menu.js', 'bibedit_holdingpen.js',
+               'marcxml.js', 'bibedit_clipboard.js']
 
     stylesheets = ['bibedit.css']
 

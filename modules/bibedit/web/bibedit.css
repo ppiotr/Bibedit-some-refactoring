@@ -288,6 +288,16 @@
     padding: 2px;
 }
 
+.bibeditHPCorrectionAdd{
+    border-width: 2px;
+    background-color: #FAEBD7;
+    font-size: smaller;
+    border-style: groove;
+    border-color: RosyBrown;
+    margin:5px 3px 3px 5px;
+    padding: 10px;
+}
+
 #bibeditHPChanges{
     overflow-y: auto;
     overflow-x: hidden;

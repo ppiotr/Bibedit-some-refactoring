@@ -45,7 +45,8 @@ js_DATA = bibedit_display.js \
           bibeditmulti.js \
           bibedit_holdingpen.js \
 	  marcxml.js \
-	  bibedit_clipboard.js
+	  bibedit_clipboard.js \
+	  bibedit_changes.js
 
 EXTRA_DIST = $(pylib_DATA) \
              $(js_DATA)

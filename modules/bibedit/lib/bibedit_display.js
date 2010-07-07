@@ -67,7 +67,8 @@ function displayRecord(){
   table += '</table>';
   $('#bibEditContent').append(table);
   // now displaying the remaining controls
-  for (changeNr in gHoldingPenChanges){
+  // TODO: Piotr: Should us forEach functionality
+  for (changeNr in gHoldingPenChangesManager.getChanges()){
       addChangeControl(changeNr, false);
   }
   colorFields();
@@ -101,22 +102,31 @@ function createControlField(tag, field, fieldPosition){
     '</tbody>';
 }
 
-function createField(tag, field, fieldPosition){
+function createFieldCore(tag, field, fieldPosition, fieldID){
   /*
    * Create field row(s).
    */
   var subfields = field[0], ind1 = field[1], ind2 = field[2];
-  var fieldID = tag + '_' + fieldPosition;
   ind1 = (ind1 != ' ' && ind1 !== '') ? ind1 : '_';
   ind2 = (ind2 != ' ' && ind2 !== '') ? ind2 : '_';
   var protectedField = fieldIsProtected(tag + ind1 + ind2);
   var subfieldsLength = subfields.length;
-  var result = '<tbody ' + 'id="rowGroup_' + fieldID + '">';
+  var result = '';
   for (var i=0, n=subfields.length; i<n; i++){
     var subfield = subfields[i];
     result += createRow(tag, ind1, ind2, subfield[0], escapeHTML(subfield[1]),
       fieldID, i, subfieldsLength, protectedField);
   }
+  return result;
+}
+
+function createField(tag, field, fieldPosition){
+  /*
+   * Create field row(s).
+   */
+  var fieldID = tag + '_' + fieldPosition;
+  var result = '<tbody ' + 'id="rowGroup_' + fieldID + '">';
+  result += createFieldCore(tag, field, fieldPosition, fieldID);
   return result + '</tbody>';
 }
 
@@ -251,8 +261,11 @@ function redrawFields(tag, skipAddFileds){
 
   // Now redraw all the Holding Pen changes connected controls
 
-  for (changeNr in gHoldingPenChanges){
-    if (gHoldingPenChanges[changeNr]["tag"] == tag){
+  // TODO: Piotr: should use forEach functionality
+
+  for (changeNr in gHoldingPenChangesManager.getChanges()){
+    var change = gHoldingPenChangesManager.getChange(changeNr);
+    if (change.tag == tag){
       addChangeControl(changeNr, skipAddFileds);
     }
   }
@@ -299,10 +312,11 @@ function getAddInsteadOfChangeButton(functionName, changeNo){
 }
 
 function addSubfieldChangedControl(changeNo){
-  fieldId = gHoldingPenChanges[changeNo]["tag"];
-  fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  sfPos = gHoldingPenChanges[changeNo]["subfield_position"];
-  content = gHoldingPenChanges[changeNo]["subfield_content"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
+  var sfPos = change.subfield_position;
+  var content = change.subfield_content;
 
   applyButton = getApplyChangeButton("applySubfieldChanged", changeNo);
   rejectButton = getRejectChangeButton(changeNo);
@@ -322,11 +336,11 @@ function addSubfieldChangedControl(changeNo){
 
 function addSubfieldAddedControl(changeNo){
   /*adds a control allowing to add a new subfield using the holding pen*/
-
-  fieldId = gHoldingPenChanges[changeNo].tag;
-  fieldPos = gHoldingPenChanges[changeNo].field_position;
-  subfieldCode = gHoldingPenChanges[changeNo].subfield_code;
-  subfieldContent = gHoldingPenChanges[changeNo].subfield_content;
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
+  var subfieldCode = change.subfield_code;
+  var subfieldContent = change.subfield_content;
 
   applyButton = getApplyChangeButton("applySubfieldAdded", changeNo);
   rejectButton = getRejectChangeButton(changeNo);
@@ -341,23 +355,24 @@ function addSubfieldAddedControl(changeNo){
 
 function addSubfieldRemovedControl(changeNo){
   /*adds a control allowing to apply the change of removing the subfield  */
-  fieldId = gHoldingPenChanges[changeNo]["tag"];
-  fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  sfPos = gHoldingPenChanges[changeNo]["subfield_position"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
+  var sfPos = change.subfield_position;
 
-  applyButton = getApplyChangeButton("applySubfieldRemoved", changeNo);
-  rejectButton = getRejectChangeButton(changeNo);
+  var applyButton = getApplyChangeButton("applySubfieldRemoved", changeNo);
+  var rejectButton = getRejectChangeButton(changeNo);
 
-  newel = "<div class=\"bibeditHPCorrection\"><span> The subfield has been removed " +
+  var newel = "<div class=\"bibeditHPCorrection\"><span> The subfield has been removed " +
   "</span>" + applyButton + rejectButton + "</div>";
   $("#content_" + fieldId + "_" + fieldPos + "_" + sfPos).append(newel);
 }
 
 function addFieldRemovedControl(changeNo){
   /*adds a control allowing the change of removing the Field*/
-
-  fieldId = gHoldingPenChanges[changeNo]["tag"];
-  fieldPos = gHoldingPenChanges[changeNo]["field_position"];
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var fieldPos = change.field_position;
 
   applyButton = getApplyChangeButton("applyFieldRemoved", changeNo);
   rejectButton = getRejectChangeButton(changeNo);
@@ -371,19 +386,19 @@ function addFieldRemovedControl(changeNo){
 
 function addFieldChangedControl(changeNo){
   /*adds a control allowing the change of removing the Field*/
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var indicators = change.indicators;
+  var fieldPos = change.field_position;
+  var fieldContent = change.field_content;
 
-  fieldId = gHoldingPenChanges[changeNo]["tag"];
-  indicators = gHoldingPenChanges[changeNo]["indicators"];
-  fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  fieldContent = gHoldingPenChanges[changeNo]["field_content"];
+  var applyButton = getApplyChangeButton("applyFieldChanged", changeNo);
+  var rejectButton = getRejectChangeButton(changeNo);
+  var addButton = getAddInsteadOfChangeButton("applyFieldAdded", changeNo);
 
-  applyButton = getApplyChangeButton("applyFieldChanged", changeNo);
-  rejectButton = getRejectChangeButton(changeNo);
-  addButton = getAddInsteadOfChangeButton("applyFieldAdded", changeNo);
+  var fieldPreview = createFieldPreview(fieldId, indicators, fieldContent);
 
-  fieldPreview = createFieldPreview(fieldId, indicators, fieldContent);
-
-  newel = "<tr><td></td><td></td><td></td><td></td><td><div class=\"bibeditHPCorrection\">Field structure has changed. New value: " +
+  var newel = "<tr><td></td><td></td><td></td><td></td><td><div class=\"bibeditHPCorrection\">Field structure has changed. New value: " +
     fieldPreview + "<br>" + applyButton + rejectButton + addButton +
     "</div></td><td></td></tr>";
 
@@ -393,16 +408,16 @@ function addFieldChangedControl(changeNo){
 
 function addFieldAddedControl(changeNo){
 /*adds a control allowing the change of adding the Field*/
+  var change = gHoldingPenChangesManager.getChange(changeNo);
+  var fieldId = change.tag;
+  var indicators = change.indicators;
+  var subfields = change.field_content;
+  var fieldContent = createFieldPreview(fieldId, indicators, subfields);
+  //fieldContent = returnASummaryOfTheField(fieldId, subfields);
+  var applyButton = getApplyChangeButton("applyFieldAdded", changeNo);
+  var rejectButton = getRejectChangeButton(changeNo);
 
-  fieldId = gHoldingPenChanges[changeNo]["tag"];
-  indicators = gHoldingPenChanges[changeNo]["indicators"];
-  field = gHoldingPenChanges[changeNo]["field_content"];
-  fieldContent = createFieldPreview(fieldId, indicators, field);
-  //fieldContent = returnASummaryOfTheField(fieldId, field);
-  applyButton = getApplyChangeButton("applyFieldAdded", changeNo);
-  rejectButton = getRejectChangeButton(changeNo);
-
-  content = "<div class=\"bibeditHPCorrection\" id=\"changeBox_" + changeNo + "\">" +
+  var content = "<div class=\"bibeditHPCorrection\" id=\"changeBox_" + changeNo + "\">" +
       "<div>A field has been added in the Holding Pen entry </div> " +
       "<div>" + fieldContent + "</div>" +
       "<div>" +
@@ -410,6 +425,53 @@ function addFieldAddedControl(changeNo){
       "</div></div>";
 
   $('#bibEditContent').append(content);
+  ///// NOW ADDING IN THE CORRECT PLACE - we should consider also other changes of addition !!!
+
+  var tag = gHoldingPenChangesManager.getChange(changeNo).tag;
+  var position = 0;
+
+  if (gRecord[tag] != undefined){
+      position = gRecord[tag].length; // TODO: Piotr : this position should be calculated based on existing removal changes
+  }
+
+  // find the insertion location rlative to the rest of the document
+
+  var predecessor_id = null;
+
+  if (position == 0){
+    // search for the previous tag
+    chosenTag = -1;
+    for (curTag in gRecord){
+      if (curTag < tag && curTag > chosenTag){
+	  chosenTag = curTag;
+      }
+    }
+
+    if (chosenTag != -1){
+      // we are not at the very beginning
+      predecessor_id = 'rowGroup_' + chosenTag + '_' + (gRecord[chosenTag].length - 1);
+    }
+  } else {
+      // in this case we add after an existing instance of a given field
+      predecessor_id = 'rowGroup_' + tag + '_' + position;
+  }
+
+  var field = [subfields, indicators[0], indicators[1], "", 0 ]
+  var field_html = createFieldCore(fieldId, field, position, "hpchange_field_" + position);
+
+  var hp_control_bar = '<tr><td colspan="5">A field has been added in the Holding Pen ' + applyButton + rejectButton +
+      '</td></tr>';
+
+  var interface_elements = '<tbody id="changeGroup_' + tag + '_' + position +
+      '" class="bibeditHPCorrectionAdd">' + hp_control_bar + field_html + '</tbody>';
+
+  content = interface_elements;
+  if (predecessor_id != null){
+     $(content).insertAfter("#" + predecessor_id);
+  } else {
+      // adding at the very beginning !
+  }
+
 }
 
 function removeAllChangeControls(){
@@ -422,11 +484,12 @@ function addChangeControl(changeNum, skipAddedField){
   /** creates a web controls responsible for applying a particular change
       changeNum is the number of the change - it is the same as the index
       in gHoldingPenChanges global array */
+  var change = gHoldingPenChangesManager.getChange(changeNum);
 
-  if (gHoldingPenChanges[changeNum].applied_change === true){
+  if (change.applied_change === true){
     return;
   }
-  changeType = gHoldingPenChanges[changeNum]["change_type"];
+  changeType = change.change_type;
   if ( changeType == "field_added" && skipAddedField !== true){
     addFieldAddedControl(changeNum);
   }

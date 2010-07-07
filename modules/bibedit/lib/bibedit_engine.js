@@ -135,6 +135,8 @@ var gCurrentStatus;
 
 var gHoldingPenChanges = [];
 
+var gHoldingPenChangesManager = new ChangesManager;
+
 // A global variable used to avoid multiple retrieving of the same changes stored in the Holding Pen
 // this is the dictionary indexed by the HoldingPen entry identifiers and containing the javascript objects
 // representing the records
@@ -425,6 +427,7 @@ function resetBibeditState(){
   */
   gHoldingPenLoadedChanges = {};
   gHoldingPenChanges = [];
+  gHoldingPenChangesManager = new ChangesManager;
   gDisabledHpEntries = {};
   gReadOnlyMode = false;
   gRecRevisionHistory = [];
@@ -1165,7 +1168,8 @@ function onGetRecordSuccess(json){
     });
   }
 
-  gHoldingPenChanges = json['pendingHpChanges'];
+  gHoldingPenChangesManager.setChanges(json['pendingHpChanges']);
+  //gHoldingPenChanges = json['pendingHpChanges'];
   gDisabledHpEntries = json['disabledHpChanges'];
   gHoldingPenLoadedChanges = {};
 
@@ -1262,7 +1266,8 @@ function onCancelClick(){
       gReadOnlyMode = false;
       gRecRevisionHistory = [];
       gHoldingPenLoadedChanges = [];
-      gHoldingPenChanges = [];
+      //gHoldingPenChanges = [];
+      gHoldingPenChangesManager = new ChangesManager;
       gPhysCopiesNum = 0;
       gBibCircUrl = null;
       // making the changes visible
@@ -1397,7 +1402,8 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
   gSelectionMode = false;
   gReadOnlyMode = false;
   gHoldingPenLoadedChanges = null;
-  gHoldingPenChanges = null;
+  //gHoldingPenChanges = [];
+  gHoldingPenChangesManager = new ChangesManager;
   gUndoList = [];
   gRedoList = [];
   gBibCircUrl = null;
@@ -1431,7 +1437,7 @@ function colorFields(){
   /*
    * Color every other field (rowgroup) gray to increase readability.
    */
-  $('#bibEditTable tbody:even').each(function(){
+  $('#bibEditTable tbody[id^="rowGroup"]:even').each(function(){
     $(this).addClass('bibEditFieldColored');
   });
 }
@@ -2203,8 +2209,11 @@ function convertFieldIntoEditable(cell, shouldSelect){
         var tag = tmpArray[1], fieldPosition = tmpArray[2],
         subfieldIndex = tmpArray[3];
 
-        for (changeNum in gHoldingPenChanges){
-          change =  gHoldingPenChanges[changeNum];
+// TODO: Piotr: rewrite using the changes manager ForEach function
+//        for (changeNum in gHoldingPenChanges){
+        for (changeNum in gHoldingPenChangesManager.getChanges()){
+//          change =  gHoldingPenChanges[changeNum];
+          var change =  gHoldingPenChangesManager.getChange(changeNum);
           if (change.tag == tag &&
               change.field_position == fieldPosition &&
               change.subfield_position != undefined &&
@@ -3046,7 +3055,8 @@ function prepareUndoHandlerApplyHPChange(changeHandler, changeNo){
   result.operation_type = "apply_hp_change";
   result.handler = changeHandler;
   result.changeNo = changeNo;
-  result.changeType = gHoldingPenChanges[changeNo].change_type;
+//  result.changeType = gHoldingPenChanges[changeNo].change_type;
+  result.changeType = gHoldingPenChangesManager.getChange(changeNo).change_type;
   return result;
 }
 
@@ -3113,7 +3123,8 @@ function performModifyHPChanges(changesList, isUndo){
   /** Undoing or redoing the operation of modifying the changeset
    */
   // first local updates
-  gHoldingPenChanges = changesList;
+//  gHoldingPenChanges = changesList;
+  gHoldingPenChangesManager.setChanges(changesList);
   refreshChangesControls();
   var result = prepareOtherUpdateRequest(isUndo);
   result.undoRedo = isUndo ? "undo" : "redo";
