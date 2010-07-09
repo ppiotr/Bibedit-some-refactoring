@@ -42,13 +42,6 @@
  *   - changeAndSerializeHash
  *
  * 5. Data logic
- *   - getTagsSorted
- *   - getFieldPositionInTag
- *   - getPreviousTag
- *   - deleteFieldFromTag
- *   - cmpFields
- *   - fieldIsProtected
- *   - containsProtected
  *   - getMARC
  *   - getFieldTag
  *   - getSubfieldTag
@@ -88,19 +81,13 @@
  *   - onDeleteClick
  */
 
-
-
 /*
  * **************************** 1. Global variables ****************************
  */
 
-// Record data
-var gRecID = null;
-var gRecIDLoading = null;
-var gRecRev = null;
-var gRecRevAuthor = null;
-var gRecLatestRev = null;
-var gRecord = null;
+// the data of the currently edited record
+var gRecordManager = RecordManager.getEmpty();
+
 // Search results (record IDs)
 var gResultSet = null;
 // Current index in the result set
@@ -108,7 +95,7 @@ var gResultSetIndex = null;
 // Tag format.
 var gTagFormat = null;
 // Has the record been modified?
-var gRecordDirty = false;
+
 // Last recorded cache modification time
 var gCacheMTime = null;
 
@@ -152,7 +139,6 @@ var gDisabledHpEntries = {};
 var gReadOnlyMode = false;
 
 // revisions history
-var gRecRevisionHistory = [];
 
 var gUndoList = []; // list of possible undo operations
 var gRedoList = []; // list of possible redo operations
@@ -256,7 +242,7 @@ function initMisc(){
 
   // Warn user if BibEdit is being closed while a record is open.
   window.onbeforeunload = function(){
-    if (gRecID && gRecordDirty){
+      if (gRecordManager.getId() && gRecordManager.isDirty()){
       return '******************** WARNING ********************\n' +
              '                  You have unsubmitted changes.\n\n' +
              'You should go back to the page and click either:\n' +
@@ -327,7 +313,7 @@ function createBulkReq(reqsData, onSuccess, optArgs){
 
     var data = { 'requestType' : 'applyBulkUpdates',
                  'requestsData' : reqsData,
-                 'recID' : gRecID};
+                 'recID' : gRecordManager.getId()};
     if (optArgs.undoRedo != undefined){
         data.undoRedo = optArgs.undoRedo;
     }
@@ -353,9 +339,11 @@ function onAjaxSuccess(json, onSuccess){
    */
   var resCode = json['resultCode'];
   var recID = json['recID'];
+
   if (resCode == 100){
     // User's session has timed out.
-    gRecID = null;
+
+    gRecordManager.setId(null);
     gRecIDLoading = null;
     window.location = recID ? gSITE_URL + '/record/' + recID + '/edit/' :
 	gSITE_URL + '/record/edit/';
@@ -410,7 +398,7 @@ function onAjaxSuccess(json, onSuccess){
   var cacheDirty = json['cacheDirty'];
   if (cacheDirty){
     // Cache is dirty. Enable submit button.
-    gRecordDirty = cacheDirty;
+    gRecordManager.setDirty(cacheDirty);
     $('#btnSubmit').removeAttr('disabled');
     $('#btnSubmit').css('background-color', 'lightgreen');
   }
@@ -430,7 +418,9 @@ function resetBibeditState(){
   gHoldingPenChangesManager = new ChangesManager;
   gDisabledHpEntries = {};
   gReadOnlyMode = false;
-  gRecRevisionHistory = [];
+
+  gRecordManager.clearRevisionsHistory();
+
   gUndoList = [];
   gRedoList = [];
   gPhysCopiesNum = 0;
@@ -493,9 +483,10 @@ function initStateFromHash(){
     return;
 
   if (gState != gPrevState ||
-     (gState == 'edit' && parseInt(tmpRecID, 10) != gRecID) ||
-     (tmpRecRev != undefined && tmpRecRev != gRecRev) ||
-     (tmpRecRev == undefined && gRecRev != gRecLatestRev) ||
+     (gState == 'edit' && parseInt(tmpRecID, 10) != gRecordManager.getId()) ||
+      (tmpRecRev != undefined && tmpRecRev != gRecordManager.getRevision()) ||
+     (tmpRecRev == undefined &&
+      gRecordManager.getRevision() != gRecordManager.getLatestRevision()) ||
      (tmpReadOnlyMode != gReadOnlyMode)){
 
       /* Tested cases:
@@ -508,9 +499,10 @@ function initStateFromHash(){
     // We have an actual and legal change of state. Clean up and update the
     // page.
     updateStatus('updating');
-    if (gRecID && !gRecordDirty && !tmpReadOnlyMode)
+    if (gRecordManager.getId() && !gRecordManager.isDirty() && !tmpReadOnlyMode)
       // If the record is unchanged, delete the cache.
-      createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+	createReq({recID: gRecordManager.getId(),
+		   requestType: 'deleteRecordCache'});
     switch (gState){
       case 'startPage':
         cleanUp(true, '', 'recID', true, true);
@@ -610,138 +602,6 @@ function changeAndSerializeHash(updateData){
  * **************************** 5. Data logic **********************************
  */
 
-function getTagsSorted(){
-  /*
-   * Return field tags in sorted order.
-   */
-  var tags = [];
-  for (var tag in gRecord){
-    tags.push(tag);
-  }
-  return tags.sort();
-}
-
-function getFieldPositionInTag(tag, field){
-  /*
-   * Determine the local (in tag) position of a new field.
-   */
-  var fields = gRecord[tag];
-  if (fields){
-    var fieldLength = fields.length, i = 0;
-    while (i < fieldLength && cmpFields(field, fields[i]) != -1)
-      i++;
-    return i;
-  }
-  else
-    return 0;
-}
-
-function getPreviousTag(tag){
-  /*
-   * Determine the previous tag in the record (if the given tag is the first
-   * tag, 0 will be returned).
-   */
-  var tags = getTagsSorted();
-  var tagPos = $.inArray(tag, tags);
-  if (tagPos == -1){
-    tags.push(tag);
-    tags.sort();
-    tagPos = $.inArray(tag, tags);
-  }
-  if (tagPos > 0)
-    return tags[tagPos-1];
-  return 0;
-}
-
-function deleteFieldFromTag(tag, fieldPosition){
-  /*
-   * Delete a specified field.
-   */
-  var field = gRecord[tag][fieldPosition];
-  var fields = gRecord[tag];
-  fields.splice($.inArray(field, fields), 1);
-  // If last field, delete tag.
-  if (fields.length === 0){
-    delete gRecord[tag];
-  }
-}
-
-function cmpFields(field1, field2){
-  /*
-   * Compare fields by indicators (tag assumed equal).
-   */
-  if (field1[1].toLowerCase() > field2[1].toLowerCase())
-    return 1;
-  else if (field1[1].toLowerCase() < field2[1].toLowerCase())
-    return -1;
-  else if (field1[2].toLowerCase() > field2[2].toLowerCase())
-    return 1;
-  else if (field1[2].toLowerCase() < field2[2].toLowerCase())
-    return -1;
-  return 0;
-}
-
-function insertFieldToRecord(record, fieldId, ind1, ind2, subFields){
-  /**Inserting a new field on the client side and returning the position of the newly created field*/
-  newField = [subFields, ind1, ind2, '', 0];
-  if (record[fieldId] == undefined){
-    record[fieldId] = [newField];
-    return 0;
-  } else {
-    record[fieldId].push(newField);
-    return (record[fieldId].length-1);
-  }
-}
-
-function transformRecord(record){
-  /**Transforming a bibrecord to a form that is easier to compare that is a dictionary
-   * field identifier -> field indices -> fields list -> [subfields list, position in the record]
-   *
-   * The data is enriched with the positions inside the record in a following manner:
-   * each field consists of:
-   * */
-  result = {};
-  for (fieldId in record){
-    result[fieldId] = {};
-    indicesList = []; // a list of all the indices ... utilised later when determining the positions
-    for (fieldIndex in record[fieldId]){
-
-      indices =  "";
-      if (record[fieldId][fieldIndex][1] == ' '){
-        indices += "_";
-      }else{
-        indices += record[fieldId][fieldIndex][1];
-      }
-
-      if (record[fieldId][fieldIndex][2] == ' '){
-        indices += "_";
-      }else{
-        indices += record[fieldId][fieldIndex][2];
-      }
-
-      if (result[fieldId][indices] == undefined){
-        result[fieldId][indices] = []; // a future list of fields sharing the same indice
-        indicesList.push(indices);
-      }
-      result[fieldId][indices].push([record[fieldId][fieldIndex][0], 0]);
-    }
-
-    // now calculating the positions within a field identifier ( utilised on the website )
-
-    position = 0;
-
-    indices = indicesList.sort();
-    for (i in indices){
-      for (fieldInd in result[fieldId][indices[i]]){
-        result[fieldId][indices[i]][fieldInd][1] = position;
-        position ++;
-      }
-    }
-  }
-
-    return result;
-}
-
 function filterChanges(changeset){
   /*Filtering the changes list -> removing the changes related to the fields
    * that should never be changed */
@@ -758,225 +618,6 @@ function filterChanges(changeset){
 
 ///// Functions generating easy to display changes list
 
-function compareFields(fieldId, indicators, fieldPos, field1, field2){
-  result = [];
-  for (sfPos in field2){
-    if (field1[sfPos] == undefined){
-      //  adding the subfield at the end of the record can be treated in a more graceful manner
-      result.push(
-          {"change_type" : "subfield_added",
-           "tag" : fieldId,
-           "indicators" : indicators,
-           "field_position" : fieldPos,
-           "subfield_code" : field2[sfPos][0],
-           "subfield_content" : field2[sfPos][1]});
-    }
-    else
-    {
-      // the subfield exists in both the records
-      if (field1[sfPos][0] != field2[sfPos][0]){
-      //  a structural change ... we replace the entire field
-        return [{"change_type" : "field_changed",
-           "tag" : fieldId,
-           "indicators" : indicators,
-           "field_position" : fieldPos,
-           "field_content" : field2}];
-      } else
-      {
-        if (field1[sfPos][1] != field2[sfPos][1]){
-          result.push({"change_type" : "subfield_changed",
-            "tag" : fieldId,
-            "indicators" : indicators,
-            "field_position" : fieldPos,
-            "subfield_position" : sfPos,
-            "subfield_code" : field2[sfPos][0],
-            "subfield_content" : field2[sfPos][1]});
-
-        }
-      }
-    }
-  }
-
-  for (sfPos in field1){
-    if (field2[sfPos] == undefined){
-      result.push({"change_type" : "subfield_removed",
-                "tag" : fieldId,
-                "indicators" : indicators,
-                "field_position" : fieldPos,
-                "subfield_position" : sfPos});
-    }
-  }
-
-  return result;
-}
-
-function compareIndicators(fieldId, indicators, fields1, fields2){
-   /*a helper function allowing to compare inside one indicator
-    * excluded from compareRecords for the code clarity reason*/
-  result = [];
-  for (fieldPos in fields2){
-    if (fields1[fieldPos] == undefined){
-      result.push({"change_type" : "field_added",
-                  "tag" : fieldId,
-                  "indicators" : indicators,
-                  "field_content" : fields2[fieldPos][0]});
-    } else { // comparing the content of the subfields
-      result = result.concat(compareFields(fieldId, indicators, fields1[fieldPos][1], fields1[fieldPos][0], fields2[fieldPos][0]));
-    }
-  }
-
-  for (fieldPos in fields1){
-    if (fields2[fieldPos] == undefined){
-      fieldPosition = fields1[fieldPos][1];
-      result.push({"change_type" : "field_removed",
-             "tag" : fieldId,
-             "indicators" : indicators,
-             "field_position" : fieldPosition});
-    }
-  }
-  return result;
-}
-
-function compareRecords(record1, record2){
-  /*Compares two bibrecords, producing a list of atom changes that can be displayed
-   * to the user if for example applying the Holding Pen change*/
-   // 1) This is more convenient to have a different structure of the storage
-  r1 = transformRecord(record1);
-  r2 = transformRecord(record2);
-  result = [];
-
-  for (fieldId in r2){
-    if (r1[fieldId] == undefined){
-      for (indicators in r2[fieldId]){
-        for (field in r2[fieldId][indicators]){
-          result.push({"change_type" : "field_added",
-                        "tag" : fieldId,
-                        "indicators" : indicators,
-                        "field_content" : r2[fieldId][indicators][field][0]});
-
-
-        }
-      }
-    }
-    else
-    {
-      for (indicators in r2[fieldId]){
-        if (r1[fieldId][indicators] == undefined){
-          for (field in r2[fieldId][indicators]){
-            result.push({"change_type" : "field_added",
-                         "tag" : fieldId,
-                         "indicators" : indicators,
-                         "field_content" : r2[fieldId][indicators][field][0]});
-
-
-          }
-        }
-        else{
-          result = result.concat(compareIndicators(fieldId, indicators,
-              r1[fieldId][indicators], r2[fieldId][indicators]));
-        }
-      }
-
-      for (indicators in r1[fieldId]){
-        if (r2[fieldId][indicators] == undefined){
-          for (fieldInd in r1[fieldId][indicators]){
-            fieldPosition = r1[fieldId][indicators][fieldInd][1];
-            result.push({"change_type" : "field_removed",
-                 "tag" : fieldId,
-                 "field_position" : fieldPosition});
-          }
-
-        }
-      }
-
-    }
-  }
-
-  for (fieldId in r1){
-    if (r2[fieldId] == undefined){
-      for (indicators in r1[fieldId]){
-        for (field in r1[fieldId][indicators])
-        {
-          // field position has to be calculated here !!!
-          fieldPosition = r1[fieldId][indicators][field][1]; // field position inside the mark
-          result.push({"change_type" : "field_removed",
-                       "tag" : fieldId,
-                       "field_position" : fieldPosition});
-
-        }
-      }
-    }
-  }
-  return result;
-}
-
-function fieldIsProtected(MARC){
-  /*
-   * Determine if a MARC field is protected or part of a protected group of
-   * fields.
-   */
-  do{
-    var i = MARC.length - 1;
-    if ($.inArray(MARC, gPROTECTED_FIELDS) != -1)
-      return true;
-    MARC = MARC.substr(0, i);
-    i--;
-  }
-  while (i >= 1)
-  return false;
-}
-
-function containsProtectedField(fieldData){
-  /*
-   * Determine if a field data structure contains protected elements (useful
-   * when checking if a deletion command is valid).
-   * The data structure must be an object with the following levels
-   * - Tag
-   *   - Field position
-   *     - Subfield index
-   */
-  var fieldPositions, subfieldIndexes, MARC;
-  for (var tag in fieldData){
-    fieldPositions = fieldData[tag];
-    for (var fieldPosition in fieldPositions){
-      subfieldIndexes = fieldPositions[fieldPosition];
-      if (subfieldIndexes.length === 0){
-  MARC = getMARC(tag, fieldPosition);
-  if (fieldIsProtected(MARC))
-    return MARC;
-  }
-      else{
-  for (var i=0, n=subfieldIndexes.length; i<n; i++){
-    MARC = getMARC(tag, fieldPosition, subfieldIndexes[i]);
-    if (fieldIsProtected(MARC))
-      return MARC;
-  }
-      }
-    }
-  }
-  return false;
-}
-
-function getMARC(tag, fieldPosition, subfieldIndex){
-  /*
-   * Return the MARC representation of a field or a subfield.
-   */
-  var field = gRecord[tag][fieldPosition];
-  var ind1, ind2;
-  if (validMARC.reControlTag.test(tag)){
-    ind1 = '';
-    ind2 = '';
-  }
-  else {
-    ind1 = (field[1] == ' ' || !field[1]) ? '_' : field[1];
-    ind2 = (field[2] == ' ' || !field[2]) ? '_' : field[2];
-  }
-  if (subfieldIndex == undefined)
-    return tag + ind1 + ind2;
-  else
-    return tag + ind1 + ind2 + field[0][subfieldIndex][0];
-}
-
 function getFieldTag(MARC){
   /*
    * Get the tag name of a field in format as specified by gTagFormat.
@@ -985,7 +626,7 @@ function getFieldTag(MARC){
   if (gTagFormat == 'human'){
     var tagName = gTAG_NAMES[MARC];
     if (tagName != undefined)
-      // Direct hit. Return it.
+     // Direct hit. Return it.
       return tagName;
     else{
       // Start looking for wildcard hits.
@@ -1055,7 +696,7 @@ function onNewRecordClick(event){
    * Handle 'New' button (new record).
    */
   updateStatus('updating');
-  if (gRecordDirty){
+  if (gRecordManager.isDirty()){
     if (!displayAlert('confirmLeavingChangedRecord')){
       updateStatus('ready');
       event.preventDefault();
@@ -1065,7 +706,7 @@ function onNewRecordClick(event){
   else
     // If the record is unchanged, erase the cache.
     if (gReadOnlyMode === false){
-      createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+      createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
   }
   changeAndSerializeHash({state: 'newRecord'});
   cleanUp(true, '');
@@ -1132,25 +773,40 @@ function onGetRecordSuccess(json){
    */
   cleanUp(!gNavigatingRecordSet);
   // Store record data.
-  gRecID = json['recID'];
   gRecIDLoading = null;
-  gRecRev = json['recordRevision'];
-  gRecRevAuthor = json['revisionAuthor'];
+
+
+// updating the record manager
+// TODO: Piotr: change to be a constructor call
+  gRecordManager = new RecordManager(json['recID'], json['record'],
+    json['recordRevision'], json['revisionAuthor'], json['cacheDirty'],
+    ((json['latestRevision'] != undefined) ? json['latestRevision'] : null),
+    ((json['revisionsHistory'] != undefined) ? json['revisionsHistory'] : null));
+
+/**  gRecID = json['recID'];
+     gRecord = json['record'];
+     gRecRev = json['recordRevision'];
+     gRecRevAuthor = json['revisionAuthor'];
+     gRecordDirty = json['cacheDirty'];
+     gRecLatestRev = (json['latestRevision'] != undefined) ? json['latestRevision'] : null;
+     gRecRevisionHistory = (json['revisionsHistory'] != undefined) ? json['revisionsHistory'] : null;
+*/
+
   gPhysCopiesNum = json['numberOfCopies'];
   gBibCircUrl = json['bibCirculationUrl'];
   gDisplayBibCircPanel = json['canRecordHavePhysicalCopies'];
 
-  var revDt = formatDateTime(getRevisionDate(gRecRev));
+  var revDt = formatDateTime(getRevisionDate(gRecordManager.getRevision()));
   var recordRevInfo = "record revision: " + revDt;
-  var revAuthorString = gRecRevAuthor;
+  var revAuthorString = gRecordManager.getRevisionAuthor();
 
   $('.headline').html(
-    'Record Editor: Record #<span id="spnRecID">' + gRecID + '</span>' +
+    'Record Editor: Record #<span id="spnRecID">' + gRecordManager.getId() + '</span>' +
     '<div style="margin-left: 5px; font-size: 0.5em; color: #36c;">' +
     recordRevInfo + ' ' + revAuthorString + '</div>').css('white-space', 'nowrap');
-  gRecord = json['record'];
+
+
   gTagFormat = json['tagFormat'];
-  gRecordDirty = json['cacheDirty'];
   gCacheMTime = json['cacheMTime'];
 
   if (json['cacheOutdated']){
@@ -1159,7 +815,7 @@ function onGetRecordSuccess(json){
     $('#lnkMergeCache').bind('click', onMergeClick);
     $('#lnkDiscardChanges').bind('click', function(event){
       getRecord.deleteRecordCache = true;
-      getRecord(gRecID);
+      getRecord(gRecordManager.getId());
       event.preventDefault();
     });
     $('#lnkRemoveMsg').bind('click', function(event){
@@ -1187,12 +843,10 @@ function onGetRecordSuccess(json){
   activateRecordMenu();
   // the current mode should is indicated by the result from the server
   gReadOnlyMode = (json['inReadOnlyMode'] != undefined) ? json['inReadOnlyMode'] : false;
-  gRecLatestRev = (json['latestRevision'] != undefined) ? json['latestRevision'] : null;
-  gRecRevisionHistory = (json['revisionsHistory'] != undefined) ? json['revisionsHistory'] : null;
 
   updateInterfaceAccordingToMode();
 
-  if (gRecordDirty){
+  if (gRecordManager.isDirty()){
     $('#btnSubmit').removeAttr('disabled');
     $('#btnSubmit').css('background-color', 'lightgreen');
   }
@@ -1209,7 +863,7 @@ function onGetRecordSuccess(json){
   updateRevisionsHistory();
   adjustGeneralHPControlsVisibility();
 
-  createReq({recID: gRecID, requestType: 'getTickets'}, onGetTicketsSuccess);
+  createReq({recID: gRecordManager.getId(), requestType: 'getTickets'}, onGetTicketsSuccess);
 }
 
 function onGetTemplateSuccess(json) {
@@ -1222,10 +876,10 @@ function onSubmitClick(){
    */
   updateStatus('updating');
   if (displayAlert('confirmSubmit')){
-    createReq({recID: gRecID, requestType: 'submit',
+    createReq({recID: gRecordManager.getId(), requestType: 'submit',
          force: onSubmitClick.force}, function(json){
        // Submission was successful.
-      changeAndSerializeHash({state: 'submit', recid: gRecID});
+      changeAndSerializeHash({state: 'submit', recid: gRecordManager.getId()});
       var resCode = json['resultCode'];
       cleanUp(!gNavigatingRecordSet, '', null, true);
       updateStatus('report', gRESULT_CODES[resCode]);
@@ -1247,15 +901,15 @@ function onCancelClick(){
    * Handle 'Cancel' button (cancel editing).
    */
   updateStatus('updating');
-  if (!gRecordDirty || displayAlert('confirmCancel')) {
+  if (!gRecordManager.isDirty() || displayAlert('confirmCancel')) {
   createReq({
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'cancel'
   }, function(json){
     // Cancellation was successful.
       changeAndSerializeHash({
           state: 'cancel',
-          recid: gRecID
+          recid: gRecordManager.getId()
         });
         cleanUp(!gNavigatingRecordSet, '', null, true, true);
         updateStatus('report', gRESULT_CODES[json['resultCode']]);
@@ -1264,7 +918,7 @@ function onCancelClick(){
       gUndoList = [];
       gRedoList = [];
       gReadOnlyMode = false;
-      gRecRevisionHistory = [];
+      gRecordManager.clearRevisionsHistory();
       gHoldingPenLoadedChanges = [];
       //gHoldingPenChanges = [];
       gHoldingPenChangesManager = new ChangesManager;
@@ -1291,10 +945,10 @@ function onCloneRecordClick(){
     updateStatus('ready');
     return;
   }
-  else if (!gRecordDirty)
+  else if (!gRecordManager.isDirty())
     // If the record is unchanged, erase the cache.
-    createReq({recID: gRecID, requestType: 'deleteRecordCache'});
-  createReq({requestType: 'newRecord', newType: 'clone', recID: gRecID},
+    createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
+  createReq({requestType: 'newRecord', newType: 'clone', recID: gRecordManager.getId()},
     function(json){
       var newRecID = json['newRecID'];
       $('#txtSearchPattern').val(newRecID);
@@ -1313,9 +967,9 @@ function onDeleteRecordClick(){
   }
   if (displayAlert('confirmDeleteRecord')){
     updateStatus('updating');
-    createReq({recID: gRecID, requestType: 'deleteRecord'}, function(json){
+    createReq({recID: gRecordManager.getId(), requestType: 'deleteRecord'}, function(json){
       // Record deletion was successful.
-      changeAndSerializeHash({state: 'deleteRecord', recid: gRecID});
+      changeAndSerializeHash({state: 'deleteRecord', recid: gRecordManager.getId()});
       cleanUp(!gNavigatingRecordSet, '', null, true);
       var resCode = json['resultCode'];
       // now cleaning the interface - removing holding pen entries and record history
@@ -1334,9 +988,11 @@ function onMergeClick(event){
   notImplemented(event);
 
   updateStatus('updating');
-  createReq({recID: gRecID, requestType: 'prepareRecordMerge'}, function(json){
+  createReq({recID: gRecordManager.getId(), requestType: 'prepareRecordMerge'}, function(json){
     // Null gRecID to avoid warning when leaving page.
-    gRecID = null;
+//    gRecID = null;
+    // TODO: Piotr: Verify if the merge button works
+    gRecordManager = RecordManager.getEmpty();
     var recID = json['recID'];
     window.location = gSITE_URL + '/record/merge/#recid1=' + recID + '&recid2=' +
       'tmp';
@@ -1380,6 +1036,7 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
     gResultSetIndex = null;
     gNavigatingRecordSet = false;
   }
+
   // Clear main content area.
   if (resetHeadline)
     $('.headline').text('Record Editor');
@@ -1394,10 +1051,15 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
   // Clear tickets.
   $('#tickets').empty();
   // Clear data.
-  gRecID = null;
+
+//TODO: Piotr: verify taht it still works ! this functionality is a little stronger that it used to be ... though seems to be more correct too
+  gRecordManager = RecordManager.getEmpty();
+/*  gRecID = null;
   gRecord = null;
-  gTagFormat = null;
   gRecordDirty = false;
+*/
+  gTagFormat = null;
+
   gCacheMTime = null;
   gSelectionMode = false;
   gReadOnlyMode = false;
@@ -1457,7 +1119,7 @@ function onMARCTagsClick(event){
    * Handle 'MARC' link (MARC tags).
    */
   $(this).unbind('click').attr('disabled', 'disabled');
-  createReq({recID: gRecID, requestType: 'changeTagFormat', tagFormat: 'MARC'});
+  createReq({recID: gRecordManager.getId(), requestType: 'changeTagFormat', tagFormat: 'MARC'});
   gTagFormat = 'MARC';
   updateTags();
   $('#btnHumanTags').bind('click', onHumanTagsClick).removeAttr('disabled');
@@ -1469,7 +1131,7 @@ function onHumanTagsClick(event){
    * Handle 'Human' link (Human tags).
    */
   $(this).unbind('click').attr('disabled', 'disabled');
-  createReq({recID: gRecID, requestType: 'changeTagFormat',
+  createReq({recID: gRecordManager.getId(), requestType: 'changeTagFormat',
        tagFormat: 'human'});
   gTagFormat = 'human';
   updateTags();
@@ -1545,7 +1207,7 @@ function onSubfieldBoxClick(box){
   // selected class.
   else{
     $('#content_' + subfieldID).addClass('bibEditSelected');
-    var field = gRecord[tag][fieldPosition];
+    var field = gRecordManager.getFields(tag)[fieldPosition];
     if (field[0].length == $(
       '#rowGroup_' + fieldID + ' input[type=checkbox]' +
       '[class=bibEditBoxSubfield]:checked').length){
@@ -1901,7 +1563,7 @@ function addFieldSave(fieldTmpNo)
 
   if (controlfield){
     // Controlfield. Validate and prepare to update.
-    if (fieldIsProtected(tag)){
+    if (RecordManager.fieldIsProtected(tag)){
       displayAlert('alertAddProtectedField', [tag]);
       updateStatus('ready');
       return;
@@ -1912,7 +1574,7 @@ function addFieldSave(fieldTmpNo)
       return;
     }
     var field = [[], ' ', ' ', value, 0];
-    var fieldPosition = getFieldPositionInTag(tag, field);
+    var fieldPosition = gRecordManager.getFieldPositionInTag(tag, field);
   }
   else{
     // Regular field. Validate and prepare to update.
@@ -1921,7 +1583,7 @@ function addFieldSave(fieldTmpNo)
     ind2 = $('#txtAddFieldInd2_' + fieldTmpNo).val();
     ind2 = (ind2 === '' || ind2 == '_') ? ' ' : ind2;
     var MARC = tag + ind1 + ind2;
-    if (fieldIsProtected(MARC)){
+    if (RecordManager.fieldIsProtected(MARC)){
       displayAlert('alertAddProtectedField', [MARC]);
       updateStatus('ready');
       return;
@@ -1973,7 +1635,7 @@ function addFieldSave(fieldTmpNo)
       return;
     }
     var field = [subfields, ind1, ind2, '', 0];
-    var fieldPosition = getFieldPositionInTag(tag, field);
+    var fieldPosition = gRecordManager.getFieldPositionInTag(tag, field);
   }
 
   // adding an undo handler
@@ -1988,7 +1650,7 @@ function addFieldSave(fieldTmpNo)
 
   // Create Ajax request.
   var data = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'addField',
     controlfield: controlfield,
     fieldPosition: fieldPosition,
@@ -2004,13 +1666,9 @@ function addFieldSave(fieldTmpNo)
   });
 
   // Continue local updating.
-  var fields = gRecord[tag];
-  // New field?
-  if (!fields)
-    gRecord[tag] = [field];
-  else{
-    fields.splice(fieldPosition, 0, field);
-  }
+
+  gRecordManager.insertField(tag, fieldPosition, field);
+
   // Remove form.
   $('#rowGroupAddField_' + fieldTmpNo).remove();
   if (!$('#bibEditTable > [id^=rowGroupAddField]').length)
@@ -2137,9 +1795,10 @@ function onAddSubfieldsSave(event, tag, fieldPosition){
      // creating the undo/redo handler
     var urHandler = prepareUndoHandlerAddSubfields(tag, fieldPosition, subfields);
     addUndoOperation(urHandler);
+
     // Create Ajax request
     var data = {
-      recID: gRecID,
+      recID: gRecordManager.getId(),
       requestType: 'addSubfields',
       tag: tag,
       fieldPosition: fieldPosition,
@@ -2151,8 +1810,8 @@ function onAddSubfieldsSave(event, tag, fieldPosition){
     });
 
     // Continue local updating
-    var field = gRecord[tag][fieldPosition];
-    field[0] = field[0].concat(subfields);
+    gRecordManager.insertSubfields(tag, fieldPosition, subfields);
+
     var rowGroup  = $('#rowGroup_' + fieldID);
     var coloredRowGroup = $(rowGroup).hasClass('bibEditFieldColored');
     $(rowGroup).replaceWith(createField(tag, field, fieldPosition));
@@ -2229,13 +1888,16 @@ function convertFieldIntoEditable(cell, shouldSelect){
         var tmpArray = this.id.split('_');
         var tag = tmpArray[1], fieldPosition = tmpArray[2],
         subfieldIndex = tmpArray[3];
-        var field = gRecord[tag][fieldPosition];
+
         var tmpResult = "";
-        if (subfieldIndex == undefined)
+
+        if (subfieldIndex == undefined) {
           // Controlfield
-          tmpResult = field[3];
-        else
-          tmpResult = field[0][subfieldIndex][1];
+          tmpResult = gRecordManager.getControlFieldValue(tag, fieldPosition);
+        } else {
+          tmpResult = gRecordManager.getSubfieldValue(tag, fieldPosition, subfieldIndex)
+        }
+
         if (tmpResult.substring(0,9) == "VOLATILE:"){
           tmpResult = tmpResult.substring(9);
         }
@@ -2270,7 +1932,7 @@ function onContentClick(cell){
 
 function getUpdateSubfieldValueRequestData(tag, fieldPosition, subfieldIndex, subfieldCode, value, changeNo, undoDescriptor, restoreChange){
   var data = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'modifyContent',
     tag: tag,
     fieldPosition: fieldPosition,
@@ -2327,10 +1989,13 @@ function onAutosuggest(event) {
   var select_id = 'select_'+tmpArray[1]+'_'+tmpArray[2]+'_'+tmpArray[3];
   var maintag = tmpArray[1], fieldPosition = tmpArray[2],
 	  subfieldIndex = tmpArray[3];
-  var field = gRecord[maintag][fieldPosition];
+
+
+  var field = gRecordManager.getField(maintag, fieldPosition);
   var subfieldcode = field[0][subfieldIndex][0];
   var subtag1 = field[1];
   var subtag2 = field[2];
+
   //check if this an autosuggest or autocomplete field.
   var fullcode = getMARC(maintag, fieldPosition, subfieldIndex);
   var reqtype = ""; //autosuggest or autocomplete, according to tag..
@@ -2357,7 +2022,7 @@ function onAutosuggest(event) {
 
   // Create Ajax request.
   var data = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     maintag: maintag,
     subtag1: subtag1,
     subtag2: subtag2,
@@ -2376,7 +2041,7 @@ function onAutosuggest(event) {
         var myelement = document.getElementById(mygrandparent.id);
         if (myelement !== null) {
           //put in the the gRecord
-          gRecord[maintag][fieldPosition][0][subfieldIndex][1] = replacement;
+          gRecordManager.getField(maintag, fieldPosition)[0][subfieldIndex][1] = replacement;
           mytarget.value = replacement;
         }
         //for the rest, create new subfields
@@ -2471,15 +2136,17 @@ function onContentChange(value, th){
   fieldPosition = tmpArray[2];
   subfieldIndex = tmpArray[3];
 
-  var field = gRecord[tag][fieldPosition];
+  var field = gRecordManager.getField(tag, fieldPosition);
   var oldValue = "";
   value = value.replace(/\n/g, ' '); // Replace newlines with spaces.
+
   if (subfieldIndex == undefined){
     // Controlfield
     if (field[3] == value)
       return escapeHTML(value);
     oldValue = field[3];
-    field[3] = value;
+    gRecordManager.setControlFieldValue(tag, fieldPosition,  value);
+
     subfieldIndex = null;
     var subfieldCode = null;
   }
@@ -2488,13 +2155,17 @@ function onContentChange(value, th){
       return escapeHTML(value);
     // Regular field
     oldValue = field[0][subfieldIndex][1];
-    field[0][subfieldIndex][1] = value;
-    var subfieldCode = field[0][subfieldIndex][0];
+    gRecordManager.setSubfieldValue(tag, fieldPosition, subfieldIndex, value);
+    var subfieldCode = gRecordManager.getSubfieldCode(tag, fieldPosition, subfieldIndex);
   }
 
   // setting the undo/redo handler
   var newValue = escapeHTML(value);
-  var code = gRecord[tag][fieldPosition][0][subfieldIndex][0];
+
+//  var code = gRecordManager.getSubfieldCode(tag, fieldPosition, subfieldIndex);
+  // TODO: Piotr: this should be tested as the above line was used which might cause problems with control fields
+  var code = subfieldCode;
+
   urHandler = prepareUndoHandlerChangeSubfield(tag,
                                                fieldPosition,
                                                subfieldIndex,
@@ -2532,7 +2203,7 @@ function onMoveSubfieldClick(type, tag, fieldPosition, subfieldIndex){
     }
   }
   else {
-    if ((parseInt(subfieldIndex, 10) + 1) >= gRecord[tag][fieldPosition][0].length) {
+    if ((parseInt(subfieldIndex, 10) + 1) >= gRecordManager.getField(tag,fieldPosition)[0].length) {
       updateStatus('ready', '');
       return;
     }
@@ -2560,7 +2231,7 @@ function onDeleteClick(event){
 
   var toDelete = getSelectedFields();
   // Assert that no protected fields are scheduled for deletion.
-  var protectedField = containsProtectedField(toDelete);
+  var protectedField = RecordManager.containsProtectedField(toDelete);
   if (protectedField){
     displayAlert('alertDeleteProtectedField', [protectedField]);
     updateStatus('ready');
@@ -2581,11 +2252,11 @@ function onMoveFieldUp(tag, fieldPosition) {
     return;
   }
   fieldPosition = parseInt(fieldPosition, 10);
-  var thisField = gRecord[tag][fieldPosition];
+  var thisField = gRecordManager.getField(tag, fieldPosition);
   if (fieldPosition > 0) {
-    var prevField = gRecord[tag][fieldPosition-1];
+    var prevField = gRecordManager.getFields(tag)[fieldPosition-1];
     // check if the previous field has the same indicators
-    if ( cmpFields(thisField, prevField) === 0 ) {
+    if ( RecordManager.cmpFields(thisField, prevField) === 0 ) {
       var undoHandler = prepareUndoHandlerMoveField(tag, fieldPosition, "up");
       addUndoOperation(undoHandler);
       var ajaxData = performMoveField(tag, fieldPosition, "up", undoHandler);
@@ -2601,11 +2272,11 @@ function onMoveFieldDown(tag, fieldPosition) {
     return;
   }
   fieldPosition = parseInt(fieldPosition, 10);
-  var thisField = gRecord[tag][fieldPosition];
-  if (fieldPosition < gRecord[tag].length-1) {
-    var nextField = gRecord[tag][fieldPosition+1];
+  var thisField = gRecordManager.getFields(tag)[fieldPosition];
+  if (fieldPosition < gRecordManager.getFields(tag).length-1) {
+    var nextField = gRecordManager.getFields(tag)[fieldPosition+1];
     // check if the next field has the same indicators
-    if ( cmpFields(thisField, nextField) === 0 ) {
+    if ( RecordManager.cmpFields(thisField, nextField) === 0 ) {
       var undoHandler = prepareUndoHandlerMoveField(tag, fieldPosition, "down");
       addUndoOperation(undoHandler);
       var ajaxData = performMoveField(tag, fieldPosition, "down", undoHandler);
@@ -2635,12 +2306,12 @@ function updateInterfaceAccordingToMode(){
 function switchToReadOnlyMode(){
   // Moving to the read only mode with BibEdit
 
-  if (gRecordDirty === true){
+  if (gRecordManager.isDirty() === true){
     alert("Please submit the record or cancel your changes before going to the read-only mode ");
     return false;
   }
   gReadOnlyMode = true;
-  createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+  createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
   gCacheMTime = 0;
 
   updateInterfaceAccordingToMode();
@@ -2662,7 +2333,7 @@ function switchToReadWriteMode(){
 
   gReadOnlyMode = false;
   // reading the record as if it was just opened
-  getRecord(gRecID);
+  getRecord(gRecordManager.getId());
   updateInterfaceAccordingToMode();
   return true;
 }
@@ -2682,9 +2353,9 @@ function onSwitchReadOnlyMode(){
 
 function getCompareClickedHandler(revisionId){
   return function(e){
-    //document.location = "/record/merge/#recid1=" + gRecID + "&recid2=" + gRecID + "." + revisionId;
+    //document.location = "/record/merge/#recid1=" + gRecordManager.getId() + "&recid2=" + gRecordManager.getId() + "." + revisionId;
     var comparisonUrl = "/record/edit/compare_revisions?recid=" +
-      gRecID + "&rev1=" + gRecRev + "&rev2=" + revisionId;
+      gRecordManager.getId() + "&rev1=" + gRecordManager.getRevision() + "&rev2=" + revisionId;
     var newWindow = window.open(comparisonUrl);
     newWindow.focus();
     return false;
@@ -2697,10 +2368,10 @@ function onRevertClick(revisionId){
    */
   updateStatus('updating');
   if (displayAlert('confirmRevert')){
-    createReq({recID: gRecID, revId: revisionId, requestType: 'revert',
+    createReq({recID: gRecordManager.getId(), revId: revisionId, requestType: 'revert',
          force: onSubmitClick.force}, function(json){
     // Submission was successful.
-      changeAndSerializeHash({state: 'submit', recid: gRecID});
+      changeAndSerializeHash({state: 'submit', recid: gRecordManager.getId()});
       var resCode = json['resultCode'];
       cleanUp(!gNavigatingRecordSet, '', null, true);
       updateStatus('report', gRESULT_CODES[resCode]);
@@ -2723,15 +2394,15 @@ function getRevertClickedHandler(revisionId){
 }
 
 function updateRevisionsHistory(){
-  if (gRecRevisionHistory === null){
+  if (gRecordManager.getRevisionsHistory() === null){
       return;
   }
 
   var result = "";
   var results = [];
-  for (revInd in  gRecRevisionHistory){
-    tmpResult = displayRevisionHistoryEntry(gRecID, gRecRevisionHistory[revInd]);
-    tmpResult["revisionID"] = gRecRevisionHistory[revInd];
+  for (revInd in gRecordManager.getRevisionsHistory()){
+    tmpResult = displayRevisionHistoryEntry(gRecordManager.getId(), gRecordManager.getRevisionsHistory()[revInd]);
+    tmpResult["revisionID"] = gRecordManager.getRevisionsHistory()[revInd];
     results.push(tmpResult);
     result += tmpResult["HTML"];
   }
@@ -2740,7 +2411,7 @@ function updateRevisionsHistory(){
   $(".bibEditRevHistoryEntryContent").bind("click", function(evt){
     var revision = $(this)[0].id.split("_")[1];
     updateStatus('updating');
-    getRecord(gRecID, revision);
+    getRecord(gRecordManager.getId(), revision);
   });
 
   /*Attaching the actions on user interface*/
@@ -2816,8 +2487,8 @@ function getSelectionMarcXml(){
       currentField.subfields = [];
       currentField.tag = tag;
       currentField.position = fieldPosition;
-      currentField.ind1 = gRecord[tag][fieldPosition][1];
-      currentField.ind2 = gRecord[tag][fieldPosition][2];
+      currentField.ind1 = gRecord.getFields(tag)[fieldPosition][1];
+      currentField.ind2 = gRecord.getFields(tag)[fieldPosition][2];
       currentField.isControlField = false;
       selectionNormal[tag] = true;
       normalFieldsXml += "<datafield tag=\"" + currentField.tag + "\" ind1=\"" +
@@ -2826,7 +2497,7 @@ function getSelectionMarcXml(){
 
     // appending a current subfield
     var newPos = currentField.subfields.length;
-    subfield = gRecord[tag][fieldPosition][0][subfieldIndex];
+    subfield = gRecord.getFields(tag)[fieldPosition][0][subfieldIndex];
     currentField.subfields[newPos] = subfield;
       normalFieldsXml += "<subfield code=\"" + subfield[0] + "\">" + encodeXml(subfield[1]) + "</subfield>";
   });
@@ -2845,7 +2516,7 @@ function getSelectionMarcXml(){
        // we have a control field ! otherwise, the field has been already utilised
       currentField = {};
       currentField.tag = tag;
-      currentField.value = gRecord[tag][fieldPosition][3];
+      currentField.value = gRecordManager.getFields(tag)[fieldPosition][3];
       var newPos = selectionControlFields.length;
       selectionControlFields[newPos] = currentField;
       controlFieldsXml += "<controlfield tag=\"" + currentField.tag + "\">" + currentField.value+ "</controlfield>";
@@ -2892,13 +2563,15 @@ function onPerformPaste(){
   var undoHandlers = [];
 
   for (tag in record){
-    if (gRecord[tag] == undefined){
-      gRecord[tag] = [];
+    if (gRecordManager.getFields(tag) == undefined){
+//      gRecord[tag] = [];
+      gRecordManager.setFields(tag, []);
     }
+
     // now appending the fields
     for (fieldInd in record[tag]){
-      newPos = gRecord[tag].length;
-      gRecord[tag][newPos] = record[tag][fieldInd];
+      newPos = gRecordManager.getFields(tag).length;
+      gRecordManager.getFields(tag)[newPos] = record[tag][fieldInd];
       // enqueue ajax add field request
 
       var isControlfield = record[tag][fieldInd][0].length === 0;
@@ -2908,7 +2581,7 @@ function onPerformPaste(){
       var fieldvalue = record[tag][fieldInd][3]; // in case of a control field
 
       changesAdd.push({
-        recID: gRecID,
+        recID: gRecordManager.getId(),
         requestType: "addField",
         controlfield : isControlfield,
         fieldPosition : newPos,
@@ -3104,7 +2777,7 @@ function prepareUndoHandlerBulkOperation(undoHandlers, handlerTitle){
 
 function urPerformAddSubfields(tag, fieldPosition, subfields, isUndo){
     var ajaxData = {
-      recID: gRecID,
+      recID: gRecordManager.getId(),
       requestType: 'addSubfields',
       tag: tag,
       fieldPosition: fieldPosition,
@@ -3112,7 +2785,7 @@ function urPerformAddSubfields(tag, fieldPosition, subfields, isUndo){
       undoRedo: (isUndo ? "undo": "redo")
     };
 
-    gRecord[tag][fieldPosition][0] = gRecord[tag][fieldPosition][0].concat(subfields);
+    gRecordManager.getFields(tag)[fieldPosition][0] = gRecordManager.getFields(tag)[fieldPosition][0].concat(subfields);
     redrawFields(tag);
     reColorFields();
 
@@ -3266,16 +2939,16 @@ function urPerformRemoveField(tag, position, isUndo){
   // first preparing the data of Ajax request
 
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'deleteFields',
     toDelete: toDeleteData,
     undoRedo: (isUndo ? "undo": "redo")
   };
 
   // updating the local model
-  gRecord[tag].splice(position,1);
-  if (gRecord[tag] == []){
-    gRecord[tag] = undefined;
+  gRecordManager.getFields(tag).splice(position,1);
+  if (gRecordManager.getFields(tag) == []){
+    gRecordManager.getFields(tag) = undefined;
   }
   redrawFields(tag);
   reColorFields();
@@ -3286,7 +2959,7 @@ function urPerformRemoveField(tag, position, isUndo){
 function prepareOtherUpdateRequest(isUndo){
   return {
     requestType : 'otherUpdateRequest',
-    recID : gRecID,
+    recID : gRecordManager.getId(),
       undoRedo: ((isUndo === true) ? "undo" : "redo"),
     hpChanges: {}
   };
@@ -3501,7 +3174,7 @@ function redoMany(number){
 }
 function urPerformAddField(controlfield, fieldPosition, tag, ind1, ind2, subfields, value, isUndo){
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'addField',
     controlfield: controlfield,
     fieldPosition: fieldPosition,
@@ -3518,12 +3191,13 @@ function urPerformAddField(controlfield, fieldPosition, tag, ind1, ind2, subfiel
 //  });
 
   // updating the local situation
-  if (gRecord[tag] == undefined){
-    gRecord[tag] = [];
+  if (gRecordManager.getFields(tag) == undefined){
+    gRecordManager.setField(tag, []);
+//    gRecord[tag] = [];
   }
   var newField = [(controlfield ? [] : subfields), ind1, ind2,
                   (controlfield ? value: ""), 0];
-  gRecord[tag].splice(fieldPosition, 0, newField);
+  gRecordManager.getFields(tag).splice(fieldPosition, 0, newField);
   redrawFields(tag);
   reColorFields();
 
@@ -3534,13 +3208,13 @@ function urPerformRemoveSubfields(tag, fieldPosition, subfields, isUndo){
   var toDelete = {};
   toDelete[tag] = {};
   toDelete[tag][fieldPosition] = [];
-  var startingPosition = gRecord[tag][fieldPosition][0].length - subfields.length;
-  for (var i=startingPosition; i<gRecord[tag][fieldPosition][0].length ; i++){
+  var startingPosition = gRecordManager.getFields(tag)[fieldPosition][0].length - subfields.length;
+  for (var i=startingPosition; i < gRecordManager.getFields(tag)[fieldPosition][0].length ; i++){
     toDelete[tag][fieldPosition].push(i);
   }
 
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'deleteFields',
     toDelete: toDelete,
     undoRedo: (isUndo ? "undo": "redo")
@@ -3550,7 +3224,7 @@ function urPerformRemoveSubfields(tag, fieldPosition, subfields, isUndo){
 //    updateStatus('report', gRESULT_CODES[json['resultCode']]);
 //  });
   // modifying the client-side interface
-  gRecord[tag][fieldPosition][0].splice( gRecord[tag][fieldPosition][0].length - subfields.length, subfields.length);
+  gRecordManager.getFields(tag)[fieldPosition][0].splice( gRecordManager.getFields(tag)[fieldPosition][0].length - subfields.length, subfields.length);
   redrawFields(tag);
   reColorFields();
 
@@ -3589,12 +3263,12 @@ function performMoveSubfield(tag, fieldPosition, subfieldIndex,
   var newSubfieldIndex = parseInt(subfieldIndex, 10) +
     (direction == "up" ? -1 : 1);
   var fieldID = tag + '_' + fieldPosition;
-  var field = gRecord[tag][fieldPosition];
+  var field = gRecordManager.getFields(tag)[fieldPosition];
   var subfields = field[0];
 
   // Create Ajax request.
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'moveSubfield',
     tag: tag,
     fieldPosition: fieldPosition,
@@ -3960,7 +3634,7 @@ function deleteFields(toDeleteStruct, undoRedo){
 
   // Create Ajax request.
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'deleteFields',
     toDelete: toDelete,
     undoRedo: (undoRedo === true) ? "undo" : ((undoRedo === false) ? "redo" :
@@ -3989,13 +3663,13 @@ function deleteFields(toDeleteStruct, undoRedo){
       var fieldID = tag + '_' + fieldPosition;
       subfieldIndexesToDelete = fieldsToDelete[fieldPosition];
       if (subfieldIndexesToDelete.length === 0)
-        deleteFieldFromTag(tag, fieldPosition);
+        gRecordManager.deleteFieldFromTag(tag, fieldPosition);
       else {
         // normal sorting will do this in a lexycographical order ! (problems if > 10 subfields
         subfieldIndexesToDelete.sort(function(a, b){
           return a - b;
         });
-        field = gRecord[tag][fieldPosition];
+        field = gRecordManager.getFields(tag)[fieldPosition];
         subfields = field[0];
         for (var j = subfieldIndexesToDelete.length - 1; j >= 0; j--){
           subfields.splice(subfieldIndexesToDelete[j], 1);
@@ -4039,7 +3713,7 @@ function getSelectedFields(){
     if (!selectedFields[tag]) {
       selectedFields[tag] = {};
     }
-    selectedFields[tag][fieldPosition] = gRecord[tag][fieldPosition];
+    selectedFields[tag][fieldPosition] = gRecordManager.getFields(tag)[fieldPosition];
   });
 
   // Collect subfields to be deleted in toDelete.
@@ -4052,13 +3726,13 @@ function getSelectedFields(){
         selectedSubfields[tag] = {};
         selectedSubfields[tag][fieldPosition] = {};
         selectedSubfields[tag][fieldPosition][subfieldIndex] =
-          gRecord[tag][fieldPosition][0][subfieldIndex];
+          gRecordManager.getFields(tag)[fieldPosition][0][subfieldIndex];
       }
       else {
         if (!selectedSubfields[tag][fieldPosition])
           selectedSubfields[tag][fieldPosition] = {};
         selectedSubfields[tag][fieldPosition][subfieldIndex] =
-          gRecord[tag][fieldPosition][0][subfieldIndex];
+          gRecordManager.getFields(tag)[fieldPosition][0][subfieldIndex];
       }
     } // else - this subfield is a part of entirely selected field...
       // we have already included the information about subfields
@@ -4072,7 +3746,7 @@ function getSelectedFields(){
 function urPerformChangeSubfieldContent(tag, fieldPos, subfieldPos, code, val, isUndo){
   // changing the server side model
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'modifyContent',
     tag: tag,
     fieldPosition: fieldPos,
@@ -4086,8 +3760,8 @@ function urPerformChangeSubfieldContent(tag, fieldPos, subfieldPos, code, val, i
 //  });
 
   // changing the model
-  gRecord[tag][fieldPos][0][subfieldPos][0] = code;
-  gRecord[tag][fieldPos][0][subfieldPos][1] = val;
+  gRecordManager.getFields(tag)[fieldPos][0][subfieldPos][0] = code;
+  gRecordManager.getFields(tag)[fieldPos][0][subfieldPos][1] = val;
 
   // changing the display .... what if being edited right now ?
   redrawFields(tag);
@@ -4108,7 +3782,7 @@ function performChangeField(tag, fieldPos, ind1, ind2, subFields, isControlfield
         undoRedo - a undoRedo Handler or one of the words "undo"/"redo"
    */
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: "modifyField",
     controlfield : isControlfield,
     fieldPosition : fieldPos,
@@ -4121,10 +3795,12 @@ function performChangeField(tag, fieldPos, ind1, ind2, subFields, isControlfield
   };
 
   // local changes
-  gRecord[tag][fieldPos][0] = subFields;
-  gRecord[tag][fieldPos][1] = ind1;
-  gRecord[tag][fieldPos][2] = ind2;
-  gRecord[tag][fieldPos][3] = value;
+  var fields = gRecordManager.getFields(tag);
+
+  fields[fieldPos][0] = subFields;
+  fields[fieldPos][1] = ind1;
+  fields[fieldPos][2] = ind2;
+  fields[fieldPos][3] = value;
   redrawFields(tag);
   reColorFields();
 
@@ -4143,7 +3819,7 @@ function performMoveField(tag, oldFieldPosition, direction, undoRedo){
   var newFieldPosition = oldFieldPosition + (direction == "up" ? -1 : 1);
   // Create Ajax request.
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'moveField',
     tag: tag,
     fieldPosition: oldFieldPosition,
@@ -4152,14 +3828,13 @@ function performMoveField(tag, oldFieldPosition, direction, undoRedo){
   };
 
   //continue updating locally
-  var currentField = gRecord[tag][oldFieldPosition];
-  gRecord[tag][oldFieldPosition] = gRecord[tag][newFieldPosition];
-  gRecord[tag][newFieldPosition] = currentField;
+
+  gRecordManager.swapFieldInstances(tag, oldFieldPosition, newFieldPosition);
 
   $('tbody#rowGroup_'+tag+'_'+(newFieldPosition)).replaceWith(
-      createField(tag, gRecord[tag][newFieldPosition], newFieldPosition));
+      createField(tag, gRecordManager.getFields(tag)[newFieldPosition], newFieldPosition));
   $('tbody#rowGroup_'+tag+'_'+oldFieldPosition).replaceWith(
-      createField(tag, gRecord[tag][oldFieldPosition], oldFieldPosition));
+      createField(tag, gRecordManager.getFields(tag)[oldFieldPosition], oldFieldPosition));
 
   reColorFields();
 
@@ -4204,7 +3879,7 @@ function createFields(toCreateFields, isUndo){
   // 1) Preparing the AJAX request
   var tagsToRedraw = {};
   var ajaxData = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'addFieldsSubfieldsOnPositions',
     fieldsToAdd: toCreateFields.fields,
     subfieldsToAdd: toCreateFields.subfields
@@ -4217,8 +3892,8 @@ function createFields(toCreateFields, isUndo){
   // 2) local processing -> creating the fields locally
   //   - first creating the missing fields so all the subsequent field indices are correcr
   for (tag in toCreateFields.fields){
-    if (gRecord[tag] == undefined){
-      gRecord[tag] = [];
+    if (gRecordManager.getFields(tag) == undefined){
+      gRecordManager.setFields(tag, []);
     }
     tagsToRedraw[tag] = true;
     var fieldIndices = [];
@@ -4229,7 +3904,7 @@ function createFields(toCreateFields, isUndo){
       for (indInd in fieldIndices){
         var fieldIndexToAdd = fieldIndices[indInd]; // index of the field index to add in the indices array
         var newField = toCreateFields.fields[tag][fieldIndexToAdd];
-        gRecord[tag].splice(fieldIndexToAdd, 0, newField);
+        gRecordManager.getFields(tag).splice(fieldIndexToAdd, 0, newField);
       }
   }
 
@@ -4245,7 +3920,7 @@ function createFields(toCreateFields, isUndo){
       subfieldPositions.sort();
       for (subfieldInd in subfieldPositions){
         subfieldPosition = subfieldPositions[subfieldInd];
-        gRecord[tag][fieldPos][0].splice(
+        gRecordManager.getFields(tag)[fieldPos][0].splice(
           subfieldPosition, 0,
           toCreateFields.subfields[tag][fieldPos][subfieldPosition]);
       }
@@ -4271,7 +3946,7 @@ function isBibCirculationPanelNecessary(){
       Returns true or false
   */
 
-  if (gRecID === null){
+  if (gRecordManager.getId() === null){
     return false;
   }
 
@@ -4318,6 +3993,6 @@ function bibCircIntGetEditCopyUrl(recId){
 function onBibCirculationBtnClicked(e){
   /** A function redirecting the user to the BibCiculation web interface
   */
-  var link = bibCircIntGetEditCopyUrl(gRecID);
+  var link = bibCircIntGetEditCopyUrl(gRecordManager.getId());
   window.open(link);
 }

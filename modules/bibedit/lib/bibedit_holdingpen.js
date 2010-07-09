@@ -102,7 +102,7 @@ function holdingPenPanelSetChanges(data){
    *  data - The dictionary containing a 'changes' key under which, a list
    *         of changes is stored
    */
-  if (data.recID == gRecID || data.recID == gRecIDLoading) {
+  if (data.recID == gRecordManager.getId() || data.recID == gRecIDLoading) {
     holdingPenPanelRemoveEntries();
     for (var i = 0; i < data['changes'].length; i++) {
       holdingPenPanelAddEntry(data['changes'][i]);
@@ -138,7 +138,7 @@ function holdingPenPanelRemoveChangeSet(changesNum){
   var undoHandler = 0;
 
   var data = {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: "deleteHoldingPenChangeset",
     changesetNumber : changesNum,
     undoRedo : undoHandler
@@ -284,7 +284,7 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
   //  for (changeInd in gHoldingPenChanges){
   for (changeInd in gHoldingPenChangesManager.getChanges()){
     //tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
-    tagsToRedraw[gHoldingPenChangesmanager.getchange(changeInd).tag] = true;
+    tagsToRedraw[gHoldingPenChangesManager.getchange(changeInd).tag] = true;
     //if (gHoldingPenChanges[changeInd].change_type == "field_added"){
     if (gHoldingPenChangesManager.getChange(changeInd).change_type == "field_added"){
       // the changes that are not displayed at the moment but should be
@@ -318,7 +318,7 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
         changesetsToActivate: [changesetNumber]
       },
     requestType: 'otherUpdateRequest',
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     undoRedo: "undo"
   };
   return ajaxData;
@@ -342,7 +342,7 @@ function visualizeRetrievedChangeset(changesetNumber, newRecordData, isRedo){
     var oldChangesList = gHoldingPenChangesManager.getChanges();
     // we want to get rid of some changes that are obviously invalid,
     // such as removal of the record number
-    var newChangesList = filterChanges(compareRecords(gRecord, newRecordData));
+    var newChangesList = filterChanges(RecordComparer.compareRecords(gRecordManager.getRecord(), newRecordData));
 
     var undoRedo = 0;
     if (isRedo === true){
@@ -399,7 +399,7 @@ function prepareVisualizeChangeset(changesetNumber, newChangesList, undoHandler)
       changesetsToDeactivate : [changesetNumber]
     },
     requestType: 'otherUpdateRequest',
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     undoRedo: undoHandler
   };
 }
@@ -463,11 +463,11 @@ function prepareHPFieldChangedUndoHandler(changeNo){
   //  var fieldPos = gHoldingPenChanges[changeNo].field_position;
   var tag = change.tag;
   var fieldPos = change.field_position;
-  var oldInd1 = gRecord[tag][fieldPos][1];
-  var oldInd2 = gRecord[tag][fieldPos][2];
-  var oldSubfields = gRecord[tag][fieldPos][0];
-  var oldIsControlField = gRecord[tag][fieldPos][3] !== "";
-  var oldValue = gRecord[tag][fieldPos][3];
+  var oldInd1 = gRecordManager.getFields(tag)[fieldPos][1];
+  var oldInd2 = gRecordManager.getFields(tag)[fieldPos][2];
+  var oldSubfields = gRecordManager.getFields(tag)[fieldPos][0];
+  var oldIsControlField = gRecordManager.getFields(tag)[fieldPos][3] !== "";
+  var oldValue = gRecordManager.getFields(tag)[fieldPos][3];
 
   //var newInd1 = gHoldingPenChanges[changeNo].indicators[0];
   //var newInd2 = gHoldingPenChanges[changeNo].indicators[1];
@@ -504,7 +504,7 @@ function prepareHPSubfieldRemovedUndoHandler(changeNo){
 
   sfToDelete[tag] = {};
   sfToDelete[tag][fieldPos] = {};
-  sfToDelete[tag][fieldPos][sfPos] = gRecord[tag][fieldPos][0][sfPos];
+  sfToDelete[tag][fieldPos][sfPos] = gRecordManager.getFields(tag)[fieldPos][0][sfPos];
 
   toDelete.fields = {};
   toDelete.subfields = sfToDelete;
@@ -527,11 +527,11 @@ function prepareSubfieldRemovedRequest(changeNo){
   toDelete[fieldId] = {};
   toDelete[fieldId][fieldPos] = [sfPos];
 
-  gRecord[fieldId][fieldPos][0].splice(sfPos, 1);
+  gRecordManager.getFields(fieldId)[fieldPos][0].splice(sfPos, 1);
   redrawFields(fieldId);
 
   return {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'deleteFields',
     toDelete: toDelete,
     hpChanges: { toDisable : [changeNo] }
@@ -548,7 +548,7 @@ function prepareHPFieldRemovedUndoHandler(changeNo){
   var toDelete = {};
   var fToDelete = {};
   fToDelete[tag] = {};
-  fToDelete[tag][fieldPos] = gRecord[tag][fieldPos];
+  fToDelete[tag][fieldPos] = gRecordManager.getFields(tag)[fieldPos];
 
   toDelete.subfields = {};
   toDelete.fields = fToDelete;
@@ -568,11 +568,11 @@ function prepareFieldRemovedRequest(changeNo){
   toDelete[fieldId][fieldPos] = [];
 
 
-  gRecord[fieldId].splice(fieldPos, 1);
+  gRecordManager.getFields(fieldId).splice(fieldPos, 1);
   redrawFields(fieldId);
 
   return {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'deleteFields',
     toDelete: toDelete,
     hpChanges: {toDisable : [changeNo]}
@@ -609,10 +609,10 @@ function prepareSubfieldAddedRequest(changeNo){
   var sfType = change.subfield_code;
   var content = change.subfield_content;
 
-  gRecord[fieldId][fieldPos][0].push([sfType, content]);
+  gRecordManager.getFields(fieldId)[fieldPos][0].push([sfType, content]);
 
   return {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: 'addSubfields',
     tag: fieldId,
     fieldPosition: fieldPos,
@@ -734,10 +734,10 @@ function prepareFieldAddedRequest(changeNo){
 
   var r = getFullFieldContentFromHPChange(changeNo);
 
-  var position = insertFieldToRecord(gRecord, r.tag, r.ind1, r.ind2, r.subfields);
+  var position = RecordManager.insertFieldToRecord(gRecordManager.getRecord(), r.tag, r.ind1, r.ind2, r.subfields);
 
   return {
-    recID: gRecID,
+    recID: gRecordManager.getId(),
     requestType: "addField",
     controlfield : r.isControlField,
     fieldPosition : position,
@@ -764,10 +764,10 @@ function prepareSubfieldChangedRequest(changeNo){
   var tag = change.tag;
   var fieldPosition = change.field_position;
   var subfieldIndex = change.subfield_position;
-  var subfieldCode = gRecord[tag][fieldPosition][0][subfieldIndex][0];
+  var subfieldCode = gRecordManager.getFields(tag)[fieldPosition][0][subfieldIndex][0];
   var value = change.subfield_content;
 
-  gRecord[tag][fieldPosition][0][subfieldIndex][1] = value;
+  gRecordManager.getFields(tag)[fieldPosition][0][subfieldIndex][1] = value;
 
   return getUpdateSubfieldValueRequestData(tag, fieldPosition,
            subfieldIndex, subfieldCode, value, changeNo);
@@ -795,9 +795,9 @@ function applySubfieldChanged(changeNo){
     var sfPos = change.subfield_position;
     var content = change.subfield_content;
 
-    var sfCode = gRecord[tag][fieldPos][0][sfPos][0];
-    var oldContent = gRecord[tag][fieldPos][0][sfPos][1];
-    gRecord[tag][fieldPos][0][sfPos][1] = content; // changing the local copy
+    var sfCode = gRecordManager.getFields(tag)[fieldPos][0][sfPos][0];
+    var oldContent = gRecordManager.getFields(tag)[fieldPos][0][sfPos][1];
+    gRecordManager.getFields(tag)[fieldPos][0][sfPos][1] = content; // changing the local copy
 
     var modificationUndoHandler = prepareUndoHandlerChangeSubfield(tag, fieldPos,
       sfPos, oldContent, content, sfCode, sfCode);
@@ -805,7 +805,7 @@ function applySubfieldChanged(changeNo){
 
     addUndoOperation(undoHandler);
 
-    updateSubfieldValue(tag, fieldPos, sfPos, gRecord[tag][fieldPos][0][sfPos][0],
+    updateSubfieldValue(tag, fieldPos, sfPos, gRecordManager.getFields(tag)[fieldPos][0][sfPos][0],
       content, changeNo, undoHandler);
 
     removeViewedChange(changeNo);
@@ -1051,7 +1051,7 @@ function onRejectChangeClicked(changeNo){
   createReq({
     requestType : "otherUpdateRequest",
     hpChanges : { toDisable: [changeNo]},
-    recID : gRecID,
+    recID : gRecordManager.getId(),
     undoRedo: undoHandler
   }, function(json){
     updateStatus('report', gRESULT_CODES[json['resultCode']]);
@@ -1129,8 +1129,8 @@ function acceptAddModifyChanges(changeNumbers){
       var fieldPos = change.field_position;
       var sfPos = change.subfield_position;
       var content = change.subfield_content;
-      var sfCode = gRecord[tag][fieldPos][0][sfPos][0];
-      var oldContent = gRecord[tag][fieldPos][0][sfPos][1];
+      var sfCode = gRecordManager.getFields(tag)[fieldPos][0][sfPos][0];
+      var oldContent = gRecordManager.getFields(tag)[fieldPos][0][sfPos][1];
 
       var modificationUndoHandler = prepareUndoHandlerChangeSubfield(tag,
         fieldPos, sfPos, oldContent, content, sfCode, sfCode);
@@ -1340,7 +1340,7 @@ function prepareRemoveAllAppliedChanges(){
 
   gHoldingPenChangesManager.clear();
   removeAllChangeControls();
-  return {recID: gRecID, requestType: "otherUpdateRequest",
+  return {recID: gRecordManager.getId(), requestType: "otherUpdateRequest",
 	  hpChanges: {toOverride : []}};
 }
 

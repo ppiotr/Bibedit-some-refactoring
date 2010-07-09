@@ -184,21 +184,21 @@ function onSearchClick(event){
     var recID = parseInt(searchPatternParts[0], 10);
     var recRev = searchPatternParts[1];
 
-    if (gRecID == recID && recRev == gRecRev){
+    if (gRecordManager.getId() == recID && recRev == gRecordManager.getRevision()){
       // We are already editing this record.
       updateStatus('ready');
       return;
     }
-    if (gRecordDirty && gReadOnlyMode === false){
+    if (gRecordManager.isDirty() && gReadOnlyMode === false){
       // Warn of unsubmitted changes.
       if (!displayAlert('confirmLeavingChangedRecord')){
 	updateStatus('ready');
 	return;
       }
     }
-    else if (gRecID && gReadOnlyMode === false)
+    else if (gRecordManager.getId() && gReadOnlyMode === false)
       // If the record is unchanged, delete the cache.
-      createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+      createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
 
     gNavigatingRecordSet = false;
     if (isNaN(recID)){
@@ -223,16 +223,17 @@ function onSearchClick(event){
   }
   else if (searchPattern.replace(/\s*/g, '')){
     // Custom search.
-    if (gRecordDirty){
+    if (gRecordManager.isDirty()){
       // Warn of unsubmitted changes.
       if (!displayAlert('confirmLeavingChangedRecord')){
 	updateStatus('ready');
 	return;
       }
     }
-    else if (gRecID)
+    else if (gRecordManager.getId()){
       // If the record is unchanged, delete the cache.
-      createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+      createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
+    }
     gNavigatingRecordSet = false;
     createReq({requestType: 'searchForRecord', searchType: searchType,
       searchPattern: searchPattern}, onSearchForRecordSuccess);
@@ -271,7 +272,7 @@ function onNextRecordClick(){
    * Handle click on the 'Next' button in the record browser.
    */
   updateStatus('updating');
-  if (gRecordDirty){
+  if (gRecordManager.isDirty()){
     if (!displayAlert('confirmLeavingChangedRecord')){
       updateStatus('ready');
       return;
@@ -279,7 +280,7 @@ function onNextRecordClick(){
   }
   else
     // If the record is unchanged, erase the cache.
-    createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+    createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
   var recordCount = gResultSet.length;
   var prevIndex = gResultSetIndex;
   gResultSetIndex += 1;
@@ -297,7 +298,7 @@ function onPrevRecordClick(){
    * Handle click on the 'Previous' button in the record browser.
    */
   updateStatus('updating');
-  if (gRecordDirty){
+  if (gRecordManager.isDirty()){
     if (!displayAlert('confirmLeavingChangedRecord')){
       updateStatus('ready');
       return;
@@ -305,7 +306,7 @@ function onPrevRecordClick(){
   }
   else
     // If the record is unchanged, erase the cache.
-    createReq({recID: gRecID, requestType: 'deleteRecordCache'});
+      createReq({recID: gRecordManager.getId(), requestType: 'deleteRecordCache'});
   var recordCount = gResultSet.length;
   var prevIndex = gResultSetIndex;
   gResultSetIndex -= 1;
@@ -323,10 +324,10 @@ function onGetTicketsSuccess(json){
  * Handle successfull 'getTickets' requests.
  */
   var tickets = json['tickets'];
-  if (json['resultCode'] == 31 && json['tickets'] && gRecID){
+  if (json['resultCode'] == 31 && json['tickets'] && gRecordManager.getId()){
     $('#tickets').html(tickets);
     $('#lnkNewTicket').bind('click', function(event){
-      setTimeout('createReq({recID: gRecID, requestType: "getTickets"},' +
+      setTimeout('createReq({recID: gRecordManager.getId(), requestType: "getTickets"},' +
 		 'onGetTicketsSuccess)', gTICKET_REFRESH_DELAY);
     });
   }

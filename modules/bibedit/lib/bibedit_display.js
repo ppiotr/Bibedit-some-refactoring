@@ -44,21 +44,21 @@ function displayRecord(){
     '<td style="padding: 0px; max-width: 16px;"></td>' +
   '</tr>' +
       '</tbody>';
-  var tags = getTagsSorted(), tag, fields;
+  var tags = gRecordManager.getTagsSorted(), tag, fields;
   // For each controlfield, create row.
   for (var i=0, n=tags.length; i<n; i++){
     tag = tags[i];
     // If not controlfield, move on.
     if (!validMARC.reControlTag.test(tag))
       break;
-    fields = gRecord[tag];
+    fields = gRecordManager.getFields(tag);
     for (var j = 0, m = fields.length; j < m; j++)
       table += createControlField(tag, fields[j], j);
   }
   // For each instance of each field, create row(s).
   for (n=tags.length; i<n; i++){
     tag = tags[i];
-    fields = gRecord[tag];
+    fields = gRecordManager.getFields(tag);
     for (var j = 0, m = fields.length; j < m; j++){
       table += createField(tag, fields[j], j);
     }
@@ -80,7 +80,7 @@ function createControlField(tag, field, fieldPosition){
    */
   var fieldID = tag + '_' + fieldPosition;
   var cellContentClass = 'class="bibEditCellContentProtected" ';
-  if (!fieldIsProtected(tag))
+  if (!RecordManager.fieldIsProtected(tag))
     cellContentClass = '';
 
   return '' +
@@ -109,7 +109,7 @@ function createFieldCore(tag, field, fieldPosition, fieldID){
   var subfields = field[0], ind1 = field[1], ind2 = field[2];
   ind1 = (ind1 != ' ' && ind1 !== '') ? ind1 : '_';
   ind2 = (ind2 != ' ' && ind2 !== '') ? ind2 : '_';
-  var protectedField = fieldIsProtected(tag + ind1 + ind2);
+  var protectedField = RecordManager.fieldIsProtected(tag + ind1 + ind2);
   var subfieldsLength = subfields.length;
   var result = '';
   for (var i=0, n=subfields.length; i<n; i++){
@@ -136,7 +136,7 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
    * Create single row (not controlfield).
    */
   var MARC = tag + ind1 + ind2 + subfieldCode;
-  var protectedSubfield = (protectedField) ? true : fieldIsProtected(MARC);
+  var protectedSubfield = (protectedField) ? true : RecordManager.fieldIsProtected(MARC);
   var subfieldID = fieldID + '_' + subfieldIndex;
   var boxField = '', cellFieldTagAttrs = 'class="bibEditCellField"',
     fieldTagToPrint = '',
@@ -239,14 +239,14 @@ function redrawFields(tag, skipAddFileds){
   }
   else{
     // New tag. Determine previous sibling.
-    var prevTag = getPreviousTag(tag);
-    var lastIndex = gRecord[prevTag].length - 1;
+    var prevTag = gRecordManager.getPreviousTag(tag);
+    var lastIndex = gRecordManager.getFields(prevTag).length - 1;
     prevRowGroup = $('#rowGroup_' + prevTag + '_' + lastIndex);
   }
 
   // Redraw all fields and append to table.
-  if (gRecord[tag]){
-    var fields = gRecord[tag];
+  if (gRecordManager.getFields(tag)){
+      var fields = gRecordManager.getFields(tag);
     var result = '', i, n;
     if (validMARC.reControlTag.test(tag)){
       for (i=0, n=fields.length; i<n; i++)
@@ -430,8 +430,8 @@ function addFieldAddedControl(changeNo){
   var tag = gHoldingPenChangesManager.getChange(changeNo).tag;
   var position = 0;
 
-  if (gRecord[tag] != undefined){
-      position = gRecord[tag].length; // TODO: Piotr : this position should be calculated based on existing removal changes
+  if (gRecordManager.getFields(tag) != undefined){
+      position = gRecordManager.getFields(tag).length; // TODO: Piotr : this position should be calculated based on existing removal changes
   }
 
   // find the insertion location rlative to the rest of the document
@@ -441,7 +441,7 @@ function addFieldAddedControl(changeNo){
   if (position == 0){
     // search for the previous tag
     chosenTag = -1;
-    for (curTag in gRecord){
+    for (curTag in gRecordManager.getRecord()){
       if (curTag < tag && curTag > chosenTag){
 	  chosenTag = curTag;
       }
@@ -449,7 +449,7 @@ function addFieldAddedControl(changeNo){
 
     if (chosenTag != -1){
       // we are not at the very beginning
-      predecessor_id = 'rowGroup_' + chosenTag + '_' + (gRecord[chosenTag].length - 1);
+      predecessor_id = 'rowGroup_' + chosenTag + '_' + (gRecordManager.getFields(chosenTag).length - 1);
     }
   } else {
       // in this case we add after an existing instance of a given field
@@ -903,7 +903,7 @@ function displayCacheOutdatedScreen(requestType){
    * discovered when fetching or when submitting the record.
    */
   $('#bibEditMessage').remove();
-  var recordURL = gSITE_URL + '/record/' + gRecID + '/';
+  var recordURL = gSITE_URL + '/record/' + gRecordManager.getId() + '/';
   var viewMARCURL = recordURL + '?of=hm';
   var viewMARCXMLURL = recordURL + '?of=xm';
   var msg = '';
@@ -1068,7 +1068,7 @@ function input(type, id, _class, attrs, defvalue){
 
   myval = '';
 
-  if ((defvalue !== null) && (defvalue !== "")) {
+  if ((defvalue !== null) && (defvalue !== "") && (defvalue !== undefined)) {
     myval = ' value="' + defvalue + '" ';
   }
 
@@ -1114,12 +1114,12 @@ function formatDateTime(dt){
 }
 
 function displayRevisionHistoryEntry(recId, revisionId){
-  var entryClass = (revisionId == gRecRev) ?
+  var entryClass = (revisionId == gRecordManager.getRevision()) ?
     "bibEditRevHistorySelectedEntry" : "bibEditRevHistoryEntry";
   var timeString = formatDateTime(getRevisionDate(revisionId));
 
 /*  var additionalAttrs = {};
-  if (revisionId == gRecRev){
+  if (revisionId == gRecordManager.getRevision()){
     additionalAttrs.disabled = "disabled"
   }
   additionalAttrs.title = "Merge with the newest revision";

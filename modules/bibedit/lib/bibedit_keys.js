@@ -188,7 +188,7 @@ function onKeyS(event){
   /*
    * Handle key 's' (toggle selection mode).
    */
-  if (gRecID){
+  if (gRecordManager.getId()){
     if (gSelectionModeOn){
       $('#bibEditTable').unbind('mouseover.selection');
       gSelectionModeOn = false;
