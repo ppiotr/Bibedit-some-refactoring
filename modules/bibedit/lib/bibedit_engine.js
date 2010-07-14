@@ -1637,7 +1637,7 @@ function addFieldSave(fieldTmpNo)
   }
 
   // adding an undo handler
-  var undoHandler = prepareUndoHandlerAddField(tag,
+  var undoHandler = UndoRedoManager.prepareUndoHandlerAddField(tag,
                                                ind1,
                                                ind2,
                                                fieldPosition,
@@ -1796,7 +1796,7 @@ function onAddSubfieldsSave(event, tag, fieldPosition){
 
   if (!(subfields.length === 0)){
      // creating the undo/redo handler
-    var urHandler = prepareUndoHandlerAddSubfields(tag, fieldPosition, subfields);
+    var urHandler = UndoRedoManager.prepareUndoHandlerAddSubfields(tag, fieldPosition, subfields);
     addUndoOperation(urHandler);
 
     // Create Ajax request
@@ -2169,7 +2169,7 @@ function onContentChange(value, th){
   // TODO: Piotr: this should be tested as the above line was used which might cause problems with control fields
   var code = subfieldCode;
 
-  urHandler = prepareUndoHandlerChangeSubfield(tag,
+  urHandler = UndoRedoManager.prepareUndoHandlerChangeSubfield(tag,
                                                fieldPosition,
                                                subfieldIndex,
                                                oldValue,
@@ -2212,7 +2212,7 @@ function onMoveSubfieldClick(type, tag, fieldPosition, subfieldIndex){
     }
   }
   // creating the undoRedo Hanglers
-  var undoHandler = prepareUndoHandlerMoveSubfields(tag,
+  var undoHandler = UndoRedoManager.prepareUndoHandlerMoveSubfields(tag,
     parseInt(fieldPosition, 10), parseInt(subfieldIndex, 10), type);
   addUndoOperation(undoHandler);
 
@@ -2241,7 +2241,7 @@ function onDeleteClick(event){
     return;
   }
     // register the undo Handler
-  var urHandler = prepareUndoHandlerDeleteFields(toDelete);
+  var urHandler = UndoRedoManager.prepareUndoHandlerDeleteFields(toDelete);
   addUndoOperation(urHandler);
   var ajaxData = deleteFields(toDelete, urHandler);
 
@@ -2260,7 +2260,7 @@ function onMoveFieldUp(tag, fieldPosition) {
     var prevField = gRecordManager.getFields(tag)[fieldPosition-1];
     // check if the previous field has the same indicators
     if ( RecordManager.cmpFields(thisField, prevField) === 0 ) {
-      var undoHandler = prepareUndoHandlerMoveField(tag, fieldPosition, "up");
+      var undoHandler = UndoRedoManager.prepareUndoHandlerMoveField(tag, fieldPosition, "up");
       addUndoOperation(undoHandler);
       var ajaxData = performMoveField(tag, fieldPosition, "up", undoHandler);
       createReq(ajaxData, function(json){
@@ -2280,7 +2280,7 @@ function onMoveFieldDown(tag, fieldPosition) {
     var nextField = gRecordManager.getFields(tag)[fieldPosition+1];
     // check if the next field has the same indicators
     if ( RecordManager.cmpFields(thisField, nextField) === 0 ) {
-      var undoHandler = prepareUndoHandlerMoveField(tag, fieldPosition, "down");
+      var undoHandler = UndoRedoManager.prepareUndoHandlerMoveField(tag, fieldPosition, "down");
       addUndoOperation(undoHandler);
       var ajaxData = performMoveField(tag, fieldPosition, "down", undoHandler);
       createReq(ajaxData, function(json){
@@ -2490,8 +2490,8 @@ function getSelectionMarcXml(){
       currentField.subfields = [];
       currentField.tag = tag;
       currentField.position = fieldPosition;
-      currentField.ind1 = gRecord.getFields(tag)[fieldPosition][1];
-      currentField.ind2 = gRecord.getFields(tag)[fieldPosition][2];
+      currentField.ind1 = gRecordManager.getFields(tag)[fieldPosition][1];
+      currentField.ind2 = gRecordManager.getFields(tag)[fieldPosition][2];
       currentField.isControlField = false;
       selectionNormal[tag] = true;
       normalFieldsXml += "<datafield tag=\"" + currentField.tag + "\" ind1=\"" +
@@ -2500,7 +2500,7 @@ function getSelectionMarcXml(){
 
     // appending a current subfield
     var newPos = currentField.subfields.length;
-    subfield = gRecord.getFields(tag)[fieldPosition][0][subfieldIndex];
+    subfield = gRecordManager.getFields(tag)[fieldPosition][0][subfieldIndex];
     currentField.subfields[newPos] = subfield;
       normalFieldsXml += "<subfield code=\"" + subfield[0] + "\">" + encodeXml(subfield[1]) + "</subfield>";
   });
@@ -2595,14 +2595,14 @@ function onPerformPaste(){
         value: fieldvalue
       });
 
-      undoHandler = prepareUndoHandlerAddField(
+      undoHandler = UndoRedoManager.prepareUndoHandlerAddField(
           tag, ind1, ind2, newPos, subfields, isControlfield, value);
       undoHandlers.push(undoHandler);
     }
   }
 
   undoHandlers.reverse();
-  var undoHandler = prepareUndoHandlerBulkOperation(undoHandlers, "paste");
+  var undoHandler = UndoRedoManager.prepareUndoHandlerBulkOperation(undoHandlers, "paste");
   addUndoOperation(undoHandler);
   // now sending the Ajax Request
   var optArgs = {
@@ -2665,113 +2665,8 @@ function undoMany(number){
   updateUrView();
 }
 
-function prepareUndoHandlerEmpty(){
-  /** Creating an empty undo/redo handler - might be useful in some cases
-      when undo operation is required but should not be registered
-  */
-  return {
-    operation_type: "no_operation"
-  };
-}
 
-function prepareUndoHandlerAddField(tag, ind1, ind2, fieldPosition, subfields,
-                                    isControlField, value ){
-  /** A function creating an undo handler for the operation of affing a new
-      field
 
-    Arguments:
-      tag:            tag of the field
-      ind1:           first indicator (a single character string)
-      ind2:           second indicator (a single character string)
-      fieldPosition:  a position of the field among other fields with the same
-                      tag and possibly different indicators)
-      subFields:      a list of fields subfields. each subfield is decribed by
-                      a pair: [code, value]
-      isControlField: a boolean value indicating if the field is a control field
-      value:          a value of a control field. (important in case of passing
-                      iscontrolField equal true)
-  */
-
-  var result = {};
-  result.operation_type = "add_field";
-  result.newSubfields = subfields;
-  result.tag = tag;
-  result.ind1 = ind1;
-  result.ind2 = ind2;
-  result.fieldPosition = fieldPosition;
-  result.isControlField = isControlField;
-  if (isControlField){
-    // value == false means that we are dealing with a control field
-    result.value = value;
-  } else{
-    result.subfields = subfields;
-  }
-
-  return result;
-}
-
-function prepareUndoHandlerVisualizeChangeset(changesetNumber, changesListBefore, changesListAfter){
-  var result = {};
-  result.operation_type = "visualize_hp_changeset";
-  result.changesetNumber = changesetNumber;
-  result.oldChangesList = changesListBefore;
-  result.newChangesList = changesListAfter;
-  return result;
-}
-
-function prepareUndoHandlerApplyHPChange(changeHandler, changeNo){
-  /** changeHandler - handler to the original undo/redo handler associated with the action
-   */
-  var result = {};
-  result.operation_type = "apply_hp_change";
-  result.handler = changeHandler;
-  result.changeNo = changeNo;
-//  result.changeType = gHoldingPenChanges[changeNo].change_type;
-  result.changeType = gHoldingPenChangesManager.getChange(changeNo).change_type;
-  return result;
-}
-
-function prepareUndoHandlerApplyHPChanges(changeHandlers, changesBefore){
-  /** Producing the undo/redo handler associated with application of
-      more than one HoldingPen change
-
-      Arguments:
-        changeHandlers - a list od undo/redo handlers associated with subsequent changes.
-        changesBefore = a list of Holding Pen changes before the operation
-   */
-
-  var result = {};
-  result.operation_type = "apply_hp_changes";
-  result.handlers = changeHandlers;
-  result.changesBefore = changesBefore;
-  return result;
-}
-
-function prepareUndoHandlerRemoveAllHPChanges(hpChanges){
-  /** A function preparing the undo handler associated with the
-      removal of all the Holding Pen changes present in teh interface */
-  var result = {};
-  result.operation_type = "remove_all_hp_changes";
-  result.old_changes_list = hpChanges;
-  return result;
-}
-
-function prepareUndoHandlerBulkOperation(undoHandlers, handlerTitle){
-  /*
-    Preapring an und/redo handler allowing to treat the bulk operations
-    ( like for example in case of pasting fields )
-    arguments:
-      undoHandlers : handlers of separate operations from the bulk
-      handlerTitle : a message to be displayed in the undo menu
-  */
-  var result = {};
-
-  result.operation_type = "bulk_operation";
-  result.handlers = undoHandlers;
-  result.title = handlerTitle;
-
-  return result;
-}
 
 function urPerformAddSubfields(tag, fieldPosition, subfields, isUndo){
     var ajaxData = {
@@ -2874,18 +2769,6 @@ function processURUntil(entry){
   }
 }
 
-function prepareUndoHandlerChangeSubfield(tag, fieldPos, subfieldPos, oldVal, newVal, oldCode, newCode){
-  var result = {};
-  result.operation_type = "change_content";
-  result.tag = tag;
-  result.oldVal = oldVal;
-  result.newVal = newVal;
-  result.oldCode = oldCode;
-  result.newCode = newCode;
-  result.fieldPos = fieldPos;
-  result.subfieldPos = subfieldPos;
-  return result;
-}
 
 function setAllSelected(){
   // make all the fields and subfields selected
@@ -2896,15 +2779,7 @@ function showUndoPreview(){
   $("#undoOperationVisualisationField").removeClass("bibEditHiddenElement");
 }
 
-function prepareUndoHandlerMoveSubfields(tag, fieldPosition, subfieldPosition, direction){
-  var result = {};
-  result.operation_type = "move_subfield";
-  result.tag = tag;
-  result.field_position = fieldPosition;
-  result.subfield_position = subfieldPosition;
-  result.direction = direction;
-  return result;
-}
+
 // Handlers to implement:
 
 function setFieldUnselected(tag, fieldPos){
@@ -3103,42 +2978,12 @@ function performRedoOperations(operations){
   }, optArgs);
 }
 
-function prepareUndoHandlerDeleteFields(toDelete){
-  /*Creating Undo/Redo handler for the operation of removal of fields and/or subfields
-    Arguments: toDelete - indicates fields and subfields scheduled to be deleted.
-      this argument should have a following structure:
-      {
-        "fields" : { tag: {fieldsPosition: field_structure_similar_to_on_from_gRecord}}
-        "subfields" : {tag: { fieldPosition: { subfieldPosition: [code, value]}}}
-      }
-  */
-  var result = {};
-  result.operation_type = "delete_fields";
-  result.toDelete = toDelete;
-  return result;
-}
 
 function setSubfieldUnselected(tag, fieldPos, subfieldPos){
  // unseelcting a subfield
   setSelectionStatusSubfield(tag, fieldPos, subfieldPos, false);
 }
 
-
-function prepareUndoHandlerAddSubfields(tag, fieldPosition, subfields){
-  /**
-    tag : tag of the field inside which the fields should be added
-    fieldPosition: position of the field
-    subfields: new subfields to be added. This argument should be a list
-      of lists representing a single subfield. Each subfield is represented
-      by a list, containing 2 elements. [subfield_code, subfield_value]
-  */
-  var result = {};
-  result.operation_type = "add_subfields";
-  result.tag = tag;
-  result.fieldPosition = fieldPosition;
-  result.newSubfields = subfields;
-  return result;
-}
 
 function setFieldSelected(tag, fieldPos){
   // select a given field
@@ -3476,7 +3321,7 @@ function preparePerformUndoOperations(operations){
       revertViewedChange(operation.changeNo);
       break;
     case "visualize_hp_changeset":
-      ajaxData = prepareUndoVisualizeChangeset(operation.changesetNumber,
+      ajaxData = UndoRedoManager.prepareUndoVisualizeChangeset(operation.changesetNumber,
         operation.oldChangesList);
       break;
     case "change_field":
@@ -3520,55 +3365,7 @@ function performUndoOperations(operations){
   }, optArgs);
 }
 
-function prepareUndoHandlerMoveField(tag, fieldPosition, direction){
-  var result = {};
-  result.tag = tag;
-  result.operation_type = "move_field";
-  result.field_position = fieldPosition;
-  result.direction = direction;
-  return result;
-}
 
-function prepareUndoHandlerChangeField(tag, fieldPos,
-  oldInd1, oldInd2, oldSubfields, oldIsControlField, oldValue,
-  newInd1, newInd2, newSubfields, newIsControlField, newValue){
-  /** Function building a handler allowing to undo the operation of
-      changing the field structure.
-
-      Changing can happen only if tag and position remain the same,
-      Otherwise we deal with removal and adding of a field
-
-      Arguments:
-        tag - tag of a field
-        fieldPos - position of a field
-
-        oldInd1, oldInd2 - indices of the old field
-        oldSubfields - subfields present int the old structure
-        oldIsControlField - a boolean value indicating if the field
-                            is a control field
-        oldValue - a value before change in case of field being a control field.
-                   if the field is normal field, this should be equal ""
-
-        newInd1, newInd2, newSubfields, newIsControlField, newValue -
-           Similar parameters describing new structure of a field
-  */
-  var result = {};
-  result.operation_type = "change_field";
-  result.tag = tag;
-  result.fieldPos = fieldPos;
-  result.oldInd1 = oldInd1;
-  result.oldInd2 = oldInd2;
-  result.oldSubfields = oldSubfields;
-  result.oldIsControlField = oldIsControlField;
-  result.oldValue = oldValue;
-  result.newInd1 = newInd1;
-  result.newInd2 = newInd2;
-  result.newSubfields = newSubfields;
-  result.newIsControlField = newIsControlField;
-  result.newValue = newValue;
-
-  return result;
-}
 
 function showRedoPreview(){
   $("#redoOperationVisualisationField").removeClass("bibEditHiddenElement");

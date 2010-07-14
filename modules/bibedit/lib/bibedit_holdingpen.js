@@ -349,7 +349,7 @@ function visualizeRetrievedChangeset(changesetNumber, newRecordData, isRedo){
       // this operation can be performed only on redo or as a genuine operation !
       undoRedo = "redo";
     } else {
-      undoRedo = prepareUndoHandlerVisualizeChangeset(changesetNumber,
+      undoRedo = UndoRedoManager.prepareUndoHandlerVisualizeChangeset(changesetNumber,
         oldChangesList, newChangesList);
       addUndoOperation(undoRedo);
     }
@@ -457,61 +457,6 @@ function holdingPenPanelApplyChangeSet(changesNum){
  *  and in the same time, the index in global gHoldingPenChanges array
  */
 
-function prepareHPFieldChangedUndoHandler(changeNo){
-  var change = gHoldingPenChangesManager.getChange(changeNo);
-  //  var tag = gHoldingPenChanges[changeNo].tag;
-  //  var fieldPos = gHoldingPenChanges[changeNo].field_position;
-  var tag = change.tag;
-  var fieldPos = change.field_position;
-  var oldInd1 = gRecordManager.getFields(tag)[fieldPos][1];
-  var oldInd2 = gRecordManager.getFields(tag)[fieldPos][2];
-  var oldSubfields = gRecordManager.getFields(tag)[fieldPos][0];
-  var oldIsControlField = gRecordManager.getFields(tag)[fieldPos][3] !== "";
-  var oldValue = gRecordManager.getFields(tag)[fieldPos][3];
-
-  //var newInd1 = gHoldingPenChanges[changeNo].indicators[0];
-  //var newInd2 = gHoldingPenChanges[changeNo].indicators[1];
-  //var newSubfields = gHoldingPenChanges[changeNo].field_content;
-  var newInd1 = change.indicators[0];
-  var newInd2 = change.indicators[1];
-  var newSubfields = change.field_content;
-  var newIsControlField = false;
-  var newValue = "";
-
-  var origHandler =  prepareUndoHandlerChangeField(tag, fieldPos,
-                                                       oldInd1, oldInd2,
-                                                       oldSubfields, oldIsControlField,
-                                                       oldValue, newInd1,
-                                                       newInd2, newSubfields,
-                                                       newIsControlField, newValue);
-
-  return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
-}
-
-function prepareHPSubfieldRemovedUndoHandler(changeNo){
-  var change = gHoldingPenChangesManager.getChange(changeNo);
-  //var tag = gHoldingPenChanges[changeNo].tag;
-  //var fieldPos = gHoldingPenChanges[changeNo].field_position;
-  //var sfPos = gHoldingPenChanges[changeNo].subfield_position;
-
-  var tag = change.tag;
-  var fieldPos = change.field_position;
-  var sfPos = change.subfield_position;
-
-
-  var toDelete = {};
-  var sfToDelete = {};
-
-  sfToDelete[tag] = {};
-  sfToDelete[tag][fieldPos] = {};
-  sfToDelete[tag][fieldPos][sfPos] = gRecordManager.getFields(tag)[fieldPos][0][sfPos];
-
-  toDelete.fields = {};
-  toDelete.subfields = sfToDelete;
-
-  var origHandler = prepareUndoHandlerDeleteFields(toDelete);
-  return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
-}
 
 function prepareSubfieldRemovedRequest(changeNo){
   var change = gHoldingPenChangesManager.getChange(changeNo);
@@ -538,23 +483,6 @@ function prepareSubfieldRemovedRequest(changeNo){
   };
 }
 
-function prepareHPFieldRemovedUndoHandler(changeNo){
-  var change = gHoldingPenChangesManager.getChange(changeNo);
-  //  var tag = gHoldingPenChanges[changeNo].tag;
-  //var fieldPos = gHoldingPenChanges[changeNo].field_position;
-  var tag = change.tag;
-  var fieldPos = change.field_position;
-
-  var toDelete = {};
-  var fToDelete = {};
-  fToDelete[tag] = {};
-  fToDelete[tag][fieldPos] = gRecordManager.getFields(tag)[fieldPos];
-
-  toDelete.subfields = {};
-  toDelete.fields = fToDelete;
-  var origHandler = prepareUndoHandlerDeleteFields(toDelete);
-  return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
-}
 
 function prepareFieldRemovedRequest(changeNo){
   var change = gHoldingPenChangesManager.getChange(changeNo);
@@ -577,22 +505,6 @@ function prepareFieldRemovedRequest(changeNo){
     toDelete: toDelete,
     hpChanges: {toDisable : [changeNo]}
   };
-}
-
-function prepareHPSubfieldAddedUndoHandler(changeNo){
-  var change = gHoldingPenChangesManager.getChange(changeNo);
-
-  //  var tag = gHoldingPenChanges[changeNo]["tag"];
-  //var fieldPos = gHoldingPenChanges[changeNo]["field_position"];
-  //var sfCode = gHoldingPenChanges[changeNo]["subfield_code"];
-  //var sfValue = gHoldingPenChanges[changeNo]["subfield_content"];
-  var tag = change.tag;
-  var fieldPos = change.field_position;
-  var sfCode = change.subfield_code;
-  var sfValue = change.subfield_content;
-  var subfields =  [[sfCode, sfValue]];
-  var origHandler = prepareUndoHandlerAddSubfields(tag, fieldPos, subfields);
-  return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
 }
 
 function prepareSubfieldAddedRequest(changeNo){
@@ -694,24 +606,6 @@ function getFullFieldContentFromHPChange(changeNo){
   return result;
 }
 
-
-function prepareHPFieldAddedUndoHandler(changeNo, fieldPos){
-  /** A function creating the Undo/Redo handler for applying a
-      change consisting of adding a new field. This handler can be
-      only created after the field is really added
-
-      Arguments:
-        changeNo: a number of the Holding Pen Change
-        fieldPos: a position on which the field has been inserted.
-   */
-  var r = getFullFieldContentFromHPChange(changeNo);
-
-  var origHandler = prepareUndoHandlerAddField(r.tag, r.ind1, r.ind2,
-                                               fieldPos, r.subfields,
-                                               r.isControlField, r.value);
-  return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
-}
-
 function prepareFieldAddedRequest(changeNo){
   /** A function preparing the request of adding a new field,
       based on the HoldingPen change. This function can be used
@@ -802,9 +696,9 @@ function applySubfieldChanged(changeNo){
     var oldContent = gRecordManager.getFields(tag)[fieldPos][0][sfPos][1];
     gRecordManager.getFields(tag)[fieldPos][0][sfPos][1] = content; // changing the local copy
 
-    var modificationUndoHandler = prepareUndoHandlerChangeSubfield(tag, fieldPos,
+    var modificationUndoHandler = UndoRedoManager.prepareUndoHandlerChangeSubfield(tag, fieldPos,
       sfPos, oldContent, content, sfCode, sfCode);
-    var undoHandler = prepareUndoHandlerApplyHPChange(modificationUndoHandler, changeNo);
+    var undoHandler = UndoRedoManager.prepareUndoHandlerApplyHPChange(modificationUndoHandler, changeNo, gHoldingPenChangesManager.getChange(changeNo));
 
     addUndoOperation(undoHandler);
 
@@ -821,7 +715,8 @@ function applySubfieldRemoved(changeNo){
     return;
   }
   if (gCurrentStatus == "ready") {
-    var undoHandler = prepareHPSubfieldRemovedUndoHandler(changeNo);
+      var hpChange = gHoldingPenChangesManager.getChange(changeNo);
+      var undoHandler = UndoRedoManager.prepareHPSubfieldRemovedUndoHandler(changeNo, hpChange);
     var data = prepareSubfieldRemovedRequest(changeNo);
     data.undoRedo = undoHandler;
     addUndoOperation(data.undoRedo);
@@ -848,8 +743,8 @@ function applyFieldRemoved(changeNo){
     var indicators = change.indicators;
     var fieldPos = change.field_position;
 
-
-    var undoHandler = prepareHPFieldRemovedUndoHandler(changeNo);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNo);
+    var undoHandler = UndoRedoManager.prepareHPFieldRemovedUndoHandler(changeNo, hpChange);
     var data = prepareFieldRemovedRequest(changeNo);
     data.undoRedo = undoHandler;
     addUndoOperation(undoHandler);
@@ -887,7 +782,8 @@ function applySubfieldAdded(changeNo){
     return;
   }
   if (gCurrentStatus == "ready") {
-    var undoHandler = prepareHPSubfieldAddedUndoHandler(changeNo);
+    var hpChange = gHoldingPenChangesManager.getChange(hpChange);
+    var undoHandler = UndoRedoManager.prepareHPSubfieldAddedUndoHandler(changeNo, hpChange);
     var data = prepareSubfieldAddedRequest(changeNo);
     data.undoRedo = undoHandler;
     addUndoOperation(undoHandler);
@@ -905,7 +801,8 @@ function applyFieldChanged(changeNumber){
     return;
   }
   if (gCurrentStatus == "ready") {
-    var undoHandler =  prepareHPFieldChangedUndoHandler(changeNumber);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNumber);
+    var undoHandler =  UndoRedoManager.prepareHPFieldChangedUndoHandler(changeNumber, hpChange);
     addUndoOperation(undoHandler);
     var data = prepareFieldChangedRequest(changeNumber, undoHandler);
 
@@ -924,7 +821,8 @@ function applyFieldAdded(changeNo){
   }
   if (gCurrentStatus == "ready") {
     var data = prepareFieldAddedRequest(changeNo);
-    var undoHandler = prepareHPFieldAddedUndoHandler(changeNo, data.fieldPosition);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNo);
+    var undoHandler = UndoRedoManager.prepareHPFieldAddedUndoHandler(changeNo, data.fieldPosition, hpChange);
     addUndoOperation(undoHandler);
     data.undoRedo = undoHandler;
 
@@ -1040,15 +938,12 @@ function refreshChangesControls(){
   adjustHPChangesetsActivity();
 }
 
-function prepareHPRejectChangeUndoHandler(changeNo){
-  var origHandler = prepareUndoHandlerEmpty();
-    return prepareUndoHandlerApplyHPChange(origHandler, changeNo);
-}
 
 function onRejectChangeClicked(changeNo){
   /** An event handler fired when user requests to reject the change that has been proposed
    * by the user interface*/
-  var undoHandler = prepareHPRejectChangeUndoHandler(changeNo);
+  var hpChange = gHoldingPenChangesManager.getChange(changeNo);
+  var undoHandler = UndoRedoManager.prepareHPRejectChangeUndoHandler(changeNo, hpChange);
   addUndoOperation(undoHandler);
   removeViewedChange(changeNo);
   createReq({
@@ -1122,7 +1017,8 @@ function acceptAddModifyChanges(changeNumbers){
     result.tagsToRedraw[change.tag] = true;
     if ( changeType == "field_added"){
       var changeData = prepareFieldAddedRequest(changeNum);
-      var undoHandler = prepareHPFieldAddedUndoHandler(changeNum, changeData.fieldPosition);
+      var hpChange = gHoldingPenChangesManager.getChange(changeNum);
+      var undoHandler = UndoRedoManager.prepareHPFieldAddedUndoHandler(changeNum, changeData.fieldPosition, hpChange);
       result.ajaxData.push(changeData);
       result.undoHandlers.push(undoHandler);
     }
@@ -1134,11 +1030,11 @@ function acceptAddModifyChanges(changeNumbers){
       var content = change.subfield_content;
       var sfCode = gRecordManager.getFields(tag)[fieldPos][0][sfPos][0];
       var oldContent = gRecordManager.getFields(tag)[fieldPos][0][sfPos][1];
-
-      var modificationUndoHandler = prepareUndoHandlerChangeSubfield(tag,
+      var modificationUndoHandler = UndoRedoManager.prepareUndoHandlerChangeSubfield(tag,
         fieldPos, sfPos, oldContent, content, sfCode, sfCode);
-      var undoHandler = prepareUndoHandlerApplyHPChange(modificationUndoHandler,
-							changeNum);
+      var undoHandler = UndoRedoManager.prepareUndoHandlerApplyHPChange(modificationUndoHandler,
+									changeNum,
+						gHoldingPenChangesManager.getChange(changeNum));
 
       var changeData = prepareSubfieldChangedRequest(changeNum);
       result.ajaxData.push(changeData);
@@ -1146,14 +1042,16 @@ function acceptAddModifyChanges(changeNumbers){
     }
 
     if ( changeType == "subfield_added"){
-      var undoHandler = prepareHPSubfieldAddedUndoHandler(changeNum);
+      var hpChange = gHoldingPenChangesManager.getChange(changeNum);
+      var undoHandler = UndoRedoManager.prepareHPSubfieldAddedUndoHandler(changeNum, hpChange);
       var changeData = prepareSubfieldAddedRequest(changeNum);
       result.undoHandlers.push(undoHandler);
       result.ajaxData.push(changeData);
     }
 
     if ( changeType == "field_changed"){
-      var undoHandler = prepareHPFieldChangedUndoHandler(changeNum);
+	var hpChange = gHoldingPenChangesManager.getChange(changeNum);
+	var undoHandler = UndoRedoManager.prepareHPFieldChangedUndoHandler(changeNum, hpChange);
       var changeData = prepareFieldChangedRequest(changeNum, 0);
       result.undoHandlers.push(undoHandler);
       result.ajaxData.push(changeData);
@@ -1197,7 +1095,8 @@ function acceptRemoveFieldChanges(changeNumbers){
 
   for (changePos in changesRemoveFieldNumbersSorted){
     var changeNum = changesRemoveFieldNumbersSorted[changePos];
-    var undoHandler = prepareHPFieldRemovedUndoHandler(changeNum);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNum);
+    var undoHandler = UndoRedoManager.prepareHPFieldRemovedUndoHandler(changeNum, hpChange);
     var changeData = prepareFieldRemovedRequest(changeNum);
     result.tagsToRedraw[gHoldingPenChangesManager.getChange(changeNum).tag] = true;
     result.undoHandlers.push(undoHandler);
@@ -1242,7 +1141,8 @@ function acceptRemoveSubfieldChanges(changeNumbers){
   /** Now we can proceed with the removals in the appropriate order*/
   for (changePos in changesRemoveSubfieldNumbersSorted){
     var changeNum = changesRemoveSubfieldNumbersSorted[changePos];
-    var undoHandler = prepareHPSubfieldRemovedUndoHandler(changeNum);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNum);
+    var undoHandler = UndoRedoManager.prepareHPSubfieldRemovedUndoHandler(changeNum, hpChange);
     var changeData = prepareSubfieldRemovedRequest(changeNum);
     result.undoHandlers.push(undoHandler);
     result.ajaxData.push(changeData);
@@ -1283,7 +1183,7 @@ function onAcceptAllChanges(){
          chNumbers.changesRemoveField);
 
   /** Now we remove all the changes visulaized in the interface */
-  var removeAllChangesUndoHandler = prepareUndoHandlerRemoveAllHPChanges(
+  var removeAllChangesUndoHandler = UndoRedoManager.prepareUndoHandlerRemoveAllHPChanges(
     				 gHoldingPenChangesManager.getChanges());
   var removeAllChangesAjaxData = prepareRemoveAllAppliedChanges();
 
@@ -1322,7 +1222,7 @@ function onAcceptAllChanges(){
     [removeAllChangesUndoHandler])));
   collectiveUndoHandlers.reverse();
 
-  var finalUndoHandler = prepareUndoHandlerBulkOperation(collectiveUndoHandlers,
+  var finalUndoHandler = UndoRedoManager.prepareUndoHandlerBulkOperation(collectiveUndoHandlers,
 							 "apply all changes");
   addUndoOperation(finalUndoHandler);
 
@@ -1349,7 +1249,7 @@ function prepareRemoveAllAppliedChanges(){
 
 function onRejectAllChanges(){
   /** Rejecting all the considered changes*/
-  var undoHandler = prepareUndoHandlerRemoveAllHPChanges(gHoldingPenChangesManager.getChanges());
+  var undoHandler = UndoRedoManager.prepareUndoHandlerRemoveAllHPChanges(gHoldingPenChangesManager.getChanges());
   addUndoOperation(undoHandler);
   var ajaxData = prepareRemoveAllAppliedChanges();
   ajaxData.undoRedo = undoHandler;

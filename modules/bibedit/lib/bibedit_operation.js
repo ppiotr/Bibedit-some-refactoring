@@ -61,8 +61,6 @@ BibEditOperation.getAddFieldOperation = function(tag, field, position){
 
 
 
-
-
 /**
 The general scheme of processing the record change
 
