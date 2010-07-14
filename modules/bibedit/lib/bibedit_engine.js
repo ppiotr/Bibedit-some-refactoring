@@ -121,7 +121,6 @@ var gCurrentStatus;
 // The index in this array is used when referring to a particular change [ like finding an appropriate box]
 
 var gHoldingPenChanges = [];
-
 var gHoldingPenChangesManager = new ChangesManager;
 
 // A global variable used to avoid multiple retrieving of the same changes stored in the Holding Pen
@@ -140,14 +139,15 @@ var gReadOnlyMode = false;
 
 // revisions history
 
-var gUndoList = []; // list of possible undo operations
-var gRedoList = []; // list of possible redo operations
+var gUndoRedoManager = UndoRedoManager.getEmpty();
+//var gUndoList = []; // list of possible undo operations
+//var gRedoList = []; // list of possible redo operations
 
 // number of bibcirculation copies from the retrieval time
 var gPhysCopiesNum = 0;
 var gBibCircUrl = null;
-
 var gDisplayBibCircPanel = false;
+
 /*
  * **************************** 2. Initialization ******************************
  */
@@ -421,8 +421,8 @@ function resetBibeditState(){
 
   gRecordManager.clearRevisionsHistory();
 
-  gUndoList = [];
-  gRedoList = [];
+  gUndoRedoManager = UndoRedoManager.getEmpty();
+
   gPhysCopiesNum = 0;
   gBibCircUrl = null;
 
@@ -833,8 +833,8 @@ function onGetRecordSuccess(json){
   updateBibCirculationPanel();
 
   // updating the undo/redo lists
-  gUndoList = json['undoList'];
-  gRedoList = json['redoList'];
+  gUndoRedoManager = new UndoRedoManager(json['undoList'], json['redoList']);
+
   updateUrView();
 
   // Display record.
@@ -915,8 +915,7 @@ function onCancelClick(){
         updateStatus('report', gRESULT_CODES[json['resultCode']]);
       });
       holdingPenPanelRemoveEntries();
-      gUndoList = [];
-      gRedoList = [];
+      gUndoRedoManager = UndoRedoManager.getEmpty();
       gReadOnlyMode = false;
       gRecordManager.clearRevisionsHistory();
       gHoldingPenLoadedChanges = [];
@@ -1066,8 +1065,7 @@ function cleanUp(disableRecBrowser, searchPattern, searchType,
   gHoldingPenLoadedChanges = null;
   //gHoldingPenChanges = [];
   gHoldingPenChangesManager = new ChangesManager;
-  gUndoList = [];
-  gRedoList = [];
+  gUndoRedoManager = UndoRedoManager.getEmpty();
   gBibCircUrl = null;
   gPhysCopiesNum = 0;
 }
@@ -1667,7 +1665,12 @@ function addFieldSave(fieldTmpNo)
 
   // Continue local updating.
 
-  gRecordManager.insertField(tag, fieldPosition, field);
+  // get the operation of adding a field
+
+  var opDesc = BibEditOperation.getAddFieldOperation(tag, field, fieldPosition);
+  gRecordManager.performOperation(opDesc);
+
+//  gRecordManager.insertField(tag, fieldPosition, field);
 
   // Remove form.
   $('#rowGroupAddField_' + fieldTmpNo).remove();
@@ -2623,27 +2626,22 @@ function onPerformPaste(){
   reColorFields();
 }
 function addUndoOperation(operation){
-  gUndoList.push(operation);
-  invalidateRedo();
+  gUndoRedoManager.addUndoOperation(operation);
+  gUndoRedoManager.invalidateRedo();
   updateUrView();
-}
-
-function invalidateRedo(){
-  /** Invalidates the redo list - after some modification*/
-  gRedoList = [];
 }
 
 function adjustUndoRedoBtnsActivity(){
   /** Making the undo/redo buttons active/inactive according to the needs
    */
-  if (gUndoList.length > 0){
+  if (!gUndoRedoManager.isUndoListEmpty()){
     $("#btnUndo").addAttribute("disabled", "");
   }
   else{
     $("#btnUndo").removeAttr("disabled");
   }
 
-  if (gRedoList.length > 0){
+  if (!gUndoRedoManager.isRedoListEmpty()){
     $("#btnRedo").addAttribute("disabled", "");
   }
   else{
@@ -2661,7 +2659,7 @@ function undoMany(number){
 
   var undoOperations = [];
   for (i=0;i<number;i++){
-    undoOperations.push(getUndoOperation());
+    undoOperations.push(gUndoRedoManager.getUndoOperation());
   }
   performUndoOperations(undoOperations);
   updateUrView();
@@ -2809,22 +2807,6 @@ function hideUndoPreview(){
   $("#undoOperationVisualisationField").addClass("bibEditHiddenElement");
   // clearing the selection !
   $(".bibEditURDescEntrySelected").removeClass("bibEditURDescEntrySelected");
-}
-
-function getRedoOperation(){
-  // getting the operation to be redoed
-  currentElement = gRedoList[0];
-  gRedoList.splice(0, 1);
-  gUndoList.push(currentElement);
-  return currentElement;
-}
-
-function getUndoOperation(){
-  // getting the operation to be undoe
-  currentElement = gUndoList[gUndoList.length - 1];
-  gUndoList.splice(gUndoList.length - 1, 1);
-  gRedoList.splice(0, 0, currentElement);
-  return currentElement;
 }
 
 function setAllUnselected(){
@@ -3167,7 +3149,7 @@ function redoMany(number){
   // redoing an indicated number of operations
   var redoOperations = [];
   for (i=0;i<number;i++){
-    redoOperations.push(getRedoOperation());
+    redoOperations.push(gUndoRedoManager.getRedoOperation());
   }
   performRedoOperations(redoOperations);
   updateUrView();
@@ -3235,11 +3217,11 @@ function updateUrView(){
   /*Updating the information box in the bibEdit menu
     (What are the current undo/redo handlers*/
   $('#undoOperationVisualisationFieldContent')[0].innerHTML =
-    (gUndoList.length === 0) ? "(empty)" :
-      renderURList(gUndoList, "undo");
+    (gUndoRedoManager.isUndoListEmpty()) ? "(empty)" :
+      renderURList(gUndoRedoManager.getUndoList(), "undo");
   $('#redoOperationVisualisationFieldContent')[0].innerHTML =
-    (gRedoList.length === 0) ? "(empty)" :
-      renderURList(gRedoList, "redo", true);
+    (gUndoRedoManager.isRedoListEmpty()) ? "(empty)" :
+      renderURList(gUndoRedoManager.getRedoList(), "redo", true);
 
   // now attaching the events ... the function is uniform for all the elements present inside the document
 
@@ -3296,7 +3278,7 @@ function performMoveSubfield(tag, fieldPosition, subfieldIndex,
 }
 
 function onRedo(evt){
-  if (gRedoList.length <= 0){
+  if (gUndoRedoManager.isRedoListEmpty()){
     alert("No Redo operations to process");
     return;
   }
@@ -3417,7 +3399,7 @@ function urMarkSelectedUntil(entry){
 }
 
 function onUndo(evt){
-  if (gUndoList.length <= 0){
+  if (gUndoRedoManager.isUndoListEmpty()){
     alert("No Undo operations to process");
     return;
   }

@@ -24,8 +24,8 @@ function RecordManager(pId, pRec, pRev, pRevAuthor, pIsDirty,
 
         pId           - the record identifier
         pRec          - the content of the record
-        pRev       - the revision of the record
-        pRevAuthor - the author of the last revision
+        pRev          - the revision of the record
+        pRevAuthor    - the author of the last revision
         pIsDirty      - a boolean value indicating if the record cache is in dirty state
         pLatestRev    - the latest available revision of the record
         pRevHist      - the list of record's revisions
@@ -225,13 +225,26 @@ function RecordManager(pId, pRec, pRev, pRevAuthor, pIsDirty,
   };
 
   this.insertField = function(tag, position, field){
-    var fields = record[tag];
-    if (fields == undefined || fields == []){
-      record[tag] = [field];
-    }
-    else{
-      fields.splice(fieldPosition, 0, field);
-    }
+    /** Inserting a field to the record
+     *  Arguments:
+     *    tag       -  tag to which the field should be inserted
+     *    position  -  position at which the field whould be inserted
+     *    field     -  a structure describing the field instance
+     *
+     *  returns the position of the inserted field
+     */
+
+     var fields = record[tag];
+     if (fields == undefined || fields == []){
+       record[tag] = [field];
+     }
+     else{
+       if (position == undefined){
+         position = fields.length;
+       }
+       fields.splice(position, 0, field);
+     }
+     return position;
   };
 
   this.insertSubfields = function(tag, position, subfields){
@@ -272,7 +285,24 @@ function RecordManager(pId, pRec, pRev, pRevAuthor, pIsDirty,
       record[tag][pos1] = record[tag][pos2];
       record[tag][pos2] = tmpField;
     }
-  }
+  };
+
+  /************************* The main interface of the manager *********/
+  this.performOperation = function(operation, ajaxRequest){
+     /** ajaxRequest parameter is ignored as this is only the update of the local copy*/
+      var opType = operation.getType();
+      switch (opType){
+      case "add_field":
+        // operation of adding the field ... extract the information from the descriptor
+          operation.setFieldPosition(this.insertField(operation.getTag(),
+						      operation.getFieldPosition(),
+						      operation.getFieldContent()));
+        break;
+      default:
+        // some other operation not supported by the manager
+        break;
+    }
+  };
 }
 
 /** Static methods of the RecordManager*/
@@ -324,9 +354,13 @@ RecordManager.cmpFields = function(field1, field2){
 
 RecordManager.insertFieldToRecord = function(chRecord, fieldId, ind1, ind2,
                                              subFields){
+
+    // OBSOLETE !!!
   /**
    * Inserting a new field on the client side and returning the position
    * of the newly created field
+   *
+   *   chRecord:
    */
 
   var newField = [subFields, ind1, ind2, '', 0];

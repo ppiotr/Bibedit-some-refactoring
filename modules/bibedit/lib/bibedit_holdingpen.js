@@ -734,7 +734,10 @@ function prepareFieldAddedRequest(changeNo){
 
   var r = getFullFieldContentFromHPChange(changeNo);
 
-  var position = RecordManager.insertFieldToRecord(gRecordManager.getRecord(), r.tag, r.ind1, r.ind2, r.subfields);
+  var newField = [r.subfields, r.ind1, r.ind2, '', 0];
+  var op = BibEditOperation.getAddFieldOperation(r.tag, newField);
+  //  var position = RecordManager.insertFieldToRecord(gRecordManager.getRecord(), r.tag, r.ind1, r.ind2, r.subfields);
+  var position = op.getFieldPosition();
 
   return {
     recID: gRecordManager.getId(),

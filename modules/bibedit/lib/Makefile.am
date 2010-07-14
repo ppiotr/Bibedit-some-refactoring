@@ -48,7 +48,12 @@ js_DATA = bibedit_display.js \
 	  bibedit_clipboard.js \
 	  bibedit_changes.js \
 	  bibedit_record.js \
-	  bibedit_reccomparer.js
+	  bibedit_reccomparer.js \
+          bibedit_operation.js \
+          bibedit_proxymanager.js \
+          bibedit_remoterecord.js \
+          bibedit_undoredo.js \
+          bibedit_ajaxrequest.js
 
 EXTRA_DIST = $(pylib_DATA) \
              $(js_DATA)
