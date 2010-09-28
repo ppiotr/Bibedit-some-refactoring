@@ -21,6 +21,7 @@ function ChangesManager(){
 
   this.appliedChanges = {};
 
+  this.isValid = true;
 }
 
 /** Note about the change states:
@@ -57,7 +58,11 @@ The transitions are realised by following methods of the manager:
 another function useful while treating the changes
 
 getRealChangePosiion(changeNo) - this function returns position of
-                                 the change in the currently displayed record (considering all the consumed changes)
+                                 the change in the currently displayed record
+                                 (considering all the consumed changes)
+
+
+change state is remembered in a variable "state" inside the change descriptor
 
 */
 
@@ -103,7 +108,7 @@ ChangesManager.prototype.aggregateAndSortChanges = function(changeType){
   return result;
 };
 
-ChangesManager.prototype.calculateAggreageteRemovalChanges = function(){
+ChangesManager.prototype.calculateAggreagetedRemovalChanges = function(){
   this.aggregatedRemovalChanges = this.aggregateAndSortChanges("field_removed");
 };
 
@@ -139,25 +144,30 @@ ChangesManager.prototype.calculateCacheData = function(){
     this.aggregatedRemovalChanges
     this.updatedAddChanges
   */
-
+  if (this.isValid === false){
+      /// calculating the changes
+  }
+  this.isValid = true;
 };
 
 /** Regular changes manager operations */
 ChangesManager.prototype.initializeFromRecords = function(r1, r2){
-    // To implement : this function initializes a changes list using two records
+  // To implement : this function initializes a changes list using two records
+  this.isValid = false;
 };
 
 ChangesManager.prototype.setChanges = function(changesList){
-    this.changesList = changesList;
+  this.changesList = changesList;
+  this.isValid = false;
 };
 
 ChangesManager.prototype.getChange = function(id){
-    return this.changesList[id];
+  return this.changesList[id];
 };
 
 ChangesManager.prototype.getChanges = function(){
-    // TODO: this function should not be used any more ... provided only for a smooth transition
-    return this.changesList;
+  // TODO: this function should not be used any more ... provided only for a smooth transition
+  return this.changesList;
 };
 
 ChangesManager.prototype.forEach = function(operation){
@@ -168,11 +178,35 @@ ChangesManager.prototype.forEach = function(operation){
 
 ChangesManager.prototype.clear = function(){
   this.changesList = [];
+  this.isValid = false;
 };
 
 ChangesManager.prototype.addChange = function(change){
+  this.isValid = false;
   var pos = this.changesList.length;
   this.changesList[pos] = change;
+  this.markChangeAsNew(pos);
   return pos;
 };
 
+
+ChangesManager.prototype.getRealChangePosition = function(changeNo){
+    /** A function returning the real position in the currently displayed record -- taking into account all the applied changes*/
+
+}
+
+
+
+// change state operations
+
+ChangesManager.prototype.markChangeAsApplied = function(changeNo){
+  this.changesList[changeNo].status = "applied";
+};
+
+ChangesManager.prototype.markChangeAsDisplayed = function(changeNo){
+  this.changesList[changeNo].status = "displayed";
+};
+
+ChangesManager.prototype.markChangeAsNew = function(changeNo){
+  this.changesList[changeNo].status = "new";
+};

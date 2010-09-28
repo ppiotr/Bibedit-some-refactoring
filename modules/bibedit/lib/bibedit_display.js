@@ -102,7 +102,7 @@ function createControlField(tag, field, fieldPosition){
     '</tbody>';
 }
 
-function createFieldCore(tag, field, fieldPosition, fieldID){
+function createFieldCore(tag, field, fieldPosition, fieldID, disableEditing){
   /*
    * Create field row(s).
    */
@@ -115,7 +115,7 @@ function createFieldCore(tag, field, fieldPosition, fieldID){
   for (var i=0, n=subfields.length; i<n; i++){
     var subfield = subfields[i];
     result += createRow(tag, ind1, ind2, subfield[0], escapeHTML(subfield[1]),
-      fieldID, i, subfieldsLength, protectedField);
+			fieldID, i, subfieldsLength, protectedField, disableEditing);
   }
   return result;
 }
@@ -126,12 +126,12 @@ function createField(tag, field, fieldPosition){
    */
   var fieldID = tag + '_' + fieldPosition;
   var result = '<tbody ' + 'id="rowGroup_' + fieldID + '">';
-  result += createFieldCore(tag, field, fieldPosition, fieldID);
+  result += createFieldCore(tag, field, fieldPosition, fieldID, false);
   return result + '</tbody>';
 }
 
 function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
-       subfieldIndex, subfieldsLength, protectedField){
+		   subfieldIndex, subfieldsLength, protectedField, disableEditing){
   /*
    * Create single row (not controlfield).
    */
@@ -167,19 +167,26 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
       cellContentClass = 'bibEditCellContent';
       cellContentTitle = 'title="Click to edit" ';
       if (autosuggest || autokeyword) {
-          cellContentTitle = 'title="Click to edit (suggest values: ctrl-shift-a or ctrl-9) " ';
+        cellContentTitle = 'title="Click to edit (suggest values: ctrl-shift-a or ctrl-9) " ';
       }
       if (autocomplete) {
-          cellContentTitle = 'title="Click to edit (complete values: ctrl-shift-a or ctrl-9) " ';
+        cellContentTitle = 'title="Click to edit (complete values: ctrl-shift-a or ctrl-9) " ';
       }
-      cellContentOnClick = 'onclick="onContentClick(this)" ';
+      if (disableEditing !== true){
+        cellContentOnClick = 'onclick="onContentClick(this)" ';
+      } else{
+	cellContentTitle = 'title="This field can not be edited"';
+      }
     }
   }
+
   cellContentAdditionalClass = "";
+
   if (subfieldValue.substring(0,9) == "VOLATILE:"){
     subfieldValue = subfieldValue.substring(9);
     cellContentAdditionalClass += " bibEditVolatileSubfield";
   }
+
   var boxSubfield = input('checkbox', 'boxSubfield_' + subfieldID,
     'bibEditBoxSubfield', {onclick: 'onSubfieldBoxClick(this)', tabindex: -1});
   var subfieldTagToPrint = getSubfieldTag(MARC);
@@ -198,7 +205,8 @@ function createRow(tag, ind1, ind2, subfieldCode, subfieldValue, fieldID,
       btnAddSubfield = img('/img/add.png', 'btnAddSubfield_' + fieldID, '',
       {title: 'Add subfield', onclick: 'onAddSubfieldsClick(this)'});
   }
-  myelement = '' +
+
+  var myelement = '' +
     '<tr id="row_' + subfieldID + '">' +
       '<td class="bibEditCellField">' + boxField + '</td>' +
       '<td ' + cellFieldTagAttrs  + '>' + fieldTagToPrint + '</td>' +
@@ -273,14 +281,15 @@ function redrawFields(tag, skipAddFileds){
 /// The Holding Pen changes connected functions
 
 /// rendering the field content
-function removeAddFieldControl(changeNo){
+function removeAddFieldControl(changeNo, tag){
   /** A function removing the interface element associated with the Add Field
       Holding Pen change
 
       Arguments:
         changeNo: a number of the change, the control is associated with
    */
-  $("#changeBox_" + changeNo).remove();
+  //  $("#changeBox_" + changeNo).remove();
+  $("#changeGroup_" + tag + "_" + changeNo).remove();
 }
 
 /// generating the changes controls
@@ -417,6 +426,7 @@ function addFieldAddedControl(changeNo){
   var applyButton = getApplyChangeButton("applyFieldAdded", changeNo);
   var rejectButton = getRejectChangeButton(changeNo);
 
+  /* the old code
   var content = "<div class=\"bibeditHPCorrection\" id=\"changeBox_" + changeNo + "\">" +
       "<div>A field has been added in the Holding Pen entry </div> " +
       "<div>" + fieldContent + "</div>" +
@@ -424,7 +434,8 @@ function addFieldAddedControl(changeNo){
       applyButton + rejectButton +
       "</div></div>";
 
-  $('#bibEditContent').append(content);
+  $('#bibEditContent').append(content); */
+
   ///// NOW ADDING IN THE CORRECT PLACE - we should consider also other changes of addition !!!
 
   var tag = gHoldingPenChangesManager.getChange(changeNo).tag;
@@ -453,16 +464,16 @@ function addFieldAddedControl(changeNo){
     }
   } else {
       // in this case we add after an existing instance of a given field
-      predecessor_id = 'rowGroup_' + tag + '_' + position;
+      predecessor_id = 'rowGroup_' + tag + '_' + (position - 1);
   }
 
-  var field = [subfields, indicators[0], indicators[1], "", 0 ]
-  var field_html = createFieldCore(fieldId, field, position, "hpchange_field_" + position);
+  var field = [subfields, indicators[0], indicators[1], "", 0 ];
+  var field_html = createFieldCore(fieldId, field, position, "hpchange_field_" + position, true);
 
   var hp_control_bar = '<tr><td colspan="5">A field has been added in the Holding Pen ' + applyButton + rejectButton +
       '</td></tr>';
 
-  var interface_elements = '<tbody id="changeGroup_' + tag + '_' + position +
+  var interface_elements = '<tbody id="changeGroup_' + tag + '_' + changeNo +
       '" class="bibeditHPCorrectionAdd">' + hp_control_bar + field_html + '</tbody>';
 
   content = interface_elements;
@@ -471,7 +482,6 @@ function addFieldAddedControl(changeNo){
   } else {
       // adding at the very beginning !
   }
-
 }
 
 function removeAllChangeControls(){

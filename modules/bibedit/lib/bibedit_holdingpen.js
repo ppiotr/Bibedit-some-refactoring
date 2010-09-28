@@ -270,10 +270,11 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
   //  for (changeInd in gHoldingPenChanges){
   for (changeInd in gHoldingPenChangesManager.getChanges()){
       //    tagsToRedraw[gHoldingPenChanges[changeInd].tag] = true;
-    tagsToRedraw[gHoldingPenChangesManager.getChange(changeInd).tag] = true;
+    var change = gHoldingPenChangesManager.getChange(changeInd);
+    tagsToRedraw[change.tag] = true;
     //    if (gHoldingPenChanges[changeInd].change_type == "field_added"){
-    if (gHoldingPenChangesManager.getChange(changeInd).change_type == "field_added"){
-      addFieldChangesToRemove[changeInd] = true;
+    if (change.change_type == "field_added"){
+      addFieldChangesToRemove[changeInd] = change.tag;
     }
   }
 
@@ -302,7 +303,7 @@ function prepareUndoVisualizeChangeset(changesetNumber, changesBefore){
     redrawFields(tag);
   }
   for (changeNo in addFieldChangesToRemove){
-    removeAddFieldControl(changeNo);
+    removeAddFieldControl(changeNo, addFieldChangesToRemove[changeNo]);
   }
   for (changeNo in addFieldChangesToDraw){
       addFieldAddedControl(changeNo);
@@ -630,6 +631,7 @@ function prepareFieldAddedRequest(changeNo){
 
   var newField = [r.subfields, r.ind1, r.ind2, '', 0];
   var op = BibEditOperation.getAddFieldOperation(r.tag, newField);
+  gRecordManager.performOperation(op);
   //  var position = RecordManager.insertFieldToRecord(gRecordManager.getRecord(), r.tag, r.ind1, r.ind2, r.subfields);
   var position = op.getFieldPosition();
 
@@ -782,7 +784,7 @@ function applySubfieldAdded(changeNo){
     return;
   }
   if (gCurrentStatus == "ready") {
-    var hpChange = gHoldingPenChangesManager.getChange(hpChange);
+    var hpChange = gHoldingPenChangesManager.getChange(changeNo);
     var undoHandler = UndoRedoManager.prepareHPSubfieldAddedUndoHandler(changeNo, hpChange);
     var data = prepareSubfieldAddedRequest(changeNo);
     data.undoRedo = undoHandler;
@@ -831,7 +833,7 @@ function applyFieldAdded(changeNo){
     });
     // now adding appropriate controls to the interface
     removeViewedChange(changeNo);
-    redrawFields(fieldId);
+    redrawFields(hpChange.tag);
     reColorFields();
   }
 }
@@ -852,7 +854,7 @@ function updateInterfaceAfterChangeModification(changeNo){
     } else {
       // in case of the add_field action, the controls have to be removed in a different manner -
       // they are not part of the main table
-      removeAddFieldControl(changeNo);
+      removeAddFieldControl(changeNo, gHoldingPenChangesManager.getChange(changeNo).tag);
     }
   }
   adjustGeneralHPControlsVisibility();
@@ -943,7 +945,7 @@ function onRejectChangeClicked(changeNo){
   /** An event handler fired when user requests to reject the change that has been proposed
    * by the user interface*/
   var hpChange = gHoldingPenChangesManager.getChange(changeNo);
-  var undoHandler = UndoRedoManager.prepareHPRejectChangeUndoHandler(changeNo, hpChange);
+  var undoHandler = UndoRedoManager.prepareUndoHandlerHPRejectChange(changeNo, hpChange);
   addUndoOperation(undoHandler);
   removeViewedChange(changeNo);
   createReq({

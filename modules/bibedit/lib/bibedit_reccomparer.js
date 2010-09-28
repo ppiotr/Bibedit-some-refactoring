@@ -59,7 +59,7 @@ RecordComparer.compareFields = function(fieldId, indicators, fieldPos, field1, f
             "tag" : fieldId,
             "indicators" : indicators,
             "field_position" : fieldPos,
-            "subfield_position" : sfPos,
+             "subfield_position" : sfPos,
             "subfield_code" : field2[sfPos][0],
             "subfield_content" : field2[sfPos][1]});
 
@@ -81,10 +81,58 @@ RecordComparer.compareFields = function(fieldId, indicators, fieldPos, field1, f
   return result;
 };
 
-RecordComparer.compareIndicators = function(fieldId, indicators,
-						      fields1, fields2){
+RecordComparer.findTheLongestCommonSubsequenceCore = function(s1, s2, l1, l2, comparer, cache){
+  if (cache[l1][l2] != []){
+    return cache[l1][l2];
+  }
+
+  var res = [];
+
+  if (comparer(s1[l1-1], s2[l2-1])){
+    var tmpRes = RecordComparer.findTheLongestCommonSubsequenceCore(s1, s2, l1 - 1, l2 - 1, comparer, cache);
+    res = [tmpRes[0] + 1, tmpRes[1] + [l1 - 1, l2 - 1, s1[l1-1]]]; // [length, [ind1, ind2, value]]
+  } else {
+    var tmpRes1 = RecordComparer.findTheLongestCommonSubsequenceCore(s1, s2, l1 - 1, l2, comparer, cache);
+    var tmpRes2 = RecordComparer.findTheLongestCommonSubsequenceCore(s1, s2, l1, l2 - 1, comparer, cache);
+    if (tmpRes1[0] > tmpRes2[0]){
+      res = tmpRes1;
+    } else {
+      res = tmpRes2;
+    }
+  }
+
+  cache[l1][l2] = res;
+  return res;
+};
+
+RecordComparer.findTheLongestCommonSubsequence = function(s1, s2, comparer){
+  var cache = [];
+  for (var i1 = 0 ; i1 <= s1.length; i1 ++){
+    var line = [];
+    for (var i2 = 0 ; i2 <= s2.length; i2 ++){
+      if (i1 === 0 || i2 === 0){
+        line.append([0, []]);
+      } else {
+        line.append([]);
+      }
+    }
+    cache.append(line);
+  }
+
+  return RecordComparer.findTheLongestCommonSubsequenceCore(s1, s2, s1.length, s2.length, comparer, cache);
+};
+
+
+RecordComparer.compareTags = function(tag,
+    	  		              fields1, fields2){
    /*a helper function allowing to compare inside one indicator
     * excluded from compareRecords for the code clarity reason*/
+
+  // 1) find the longest common substring
+  var longest_substring = RecordComparer.findTheLongestCommonSubsequence = function(s1, s2, comparer);
+
+  // 2) iterate ove this list and create all the necessary changes (add/remove)
+
   result = [];
   for (fieldPos in fields2){
     if (fields1[fieldPos] == undefined){
@@ -111,12 +159,69 @@ RecordComparer.compareIndicators = function(fieldId, indicators,
 };
 
 RecordComparer.compareRecords = function(record1, record2){
-  /*Compares two bibrecords, producing a list of atom changes that can be displayed
-   * to the user if for example applying the Holding Pen change*/
+  var result = [];
+  var tagsToCompare = {};
+  for (tag in record1){
+    tagsToCompare[tag] = true;
+  }
+
+  for (tag in record2){
+    tagsToCompare[tag] = true;
+  }
+
+  for (tag in tagsToCompare){
+    var l1 = [];
+    if (record1[tag] != undefined){
+      l1 = record1[tag];
+    }
+    var l2 = [];
+    if (record2[tag] != undefined){
+      l2 = record2[tag];
+    }
+    result += RecordComparer.compareTags(tag, l1, l2)
+  }
+};
+
+
+/*
+RecordComparer.compareIndicators = function(fieldId, indicators,
+						      fields1, fields2){
+   /*a helper function allowing to compare inside one indicator
+    * excluded from compareRecords for the code clarity reason* /
+  var result = [];
+  for (fieldPos in fields2){
+    if (fields1[fieldPos] == undefined){
+      result.push({"change_type" : "field_added",
+                  "tag" : fieldId,
+                  "indicators" : indicators,
+                  "field_content" : fields2[fieldPos][0]});
+    } else { // comparing the content of the subfields
+      result = result.concat(RecordComparer.compareFields(fieldId, indicators,
+        fields1[fieldPos][1], fields1[fieldPos][0], fields2[fieldPos][0]));
+    }
+  }
+
+  for (fieldPos in fields1){
+    if (fields2[fieldPos] == undefined){
+      fieldPosition = fields1[fieldPos][1];
+      result.push({"change_type" : "field_removed",
+             "tag" : fieldId,
+             "indicators" : indicators,
+             "field_position" : fieldPosition});
+    }
+  }
+  return result;
+};
+*/
+
+/*
+RecordComparer.compareRecords = function(record1, record2){
+ /*Compares two bibrecords, producing a list of atom changes that can be displayed
+   * to the user if for example applying the Holding Pen change* /
    // 1) This is more convenient to have a different structure of the storage
-  r1 = RecordManager.transformRecord(record1);
-  r2 = RecordManager.transformRecord(record2);
-  result = [];
+  var r1 = RecordManager.transformRecord(record1);
+  var r2 = RecordManager.transformRecord(record2);
+  var result = [];
 
   for (fieldId in r2){
     if (r1[fieldId] == undefined){
@@ -182,3 +287,4 @@ RecordComparer.compareRecords = function(record1, record2){
   }
   return result;
 };
+*/

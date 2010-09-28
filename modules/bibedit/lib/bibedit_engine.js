@@ -120,7 +120,7 @@ var gCurrentStatus;
 // for redrawing the change fields
 // The index in this array is used when referring to a particular change [ like finding an appropriate box]
 
-var gHoldingPenChanges = [];
+//var gHoldingPenChanges = [];
 var gHoldingPenChangesManager = new ChangesManager;
 
 // A global variable used to avoid multiple retrieving of the same changes stored in the Holding Pen
@@ -415,7 +415,7 @@ function resetBibeditState(){
   */
   gHoldingPenLoadedChanges = {};
   gHoldingPenChanges = [];
-  gHoldingPenChangesManager = new ChangesManager;
+  gHoldingPenChangesManager = new ChangesManager();
   gDisabledHpEntries = {};
   gReadOnlyMode = false;
 
@@ -3321,7 +3321,7 @@ function preparePerformUndoOperations(operations){
       revertViewedChange(operation.changeNo);
       break;
     case "visualize_hp_changeset":
-      ajaxData = UndoRedoManager.prepareUndoVisualizeChangeset(operation.changesetNumber,
+      ajaxData = prepareUndoVisualizeChangeset(operation.changesetNumber,
         operation.oldChangesList);
       break;
     case "change_field":
