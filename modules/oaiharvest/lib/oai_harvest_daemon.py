@@ -793,7 +793,6 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                 current_exitcode, err_msg, tarball, dummy = \
                             plotextractor_harvest(identifier, active_file, selection=["tarball"])
                 if current_exitcode != 0:
-                    exitcode = current_exitcode
                     all_err_msg.append(err_msg)
                 else:
                     downloaded_files[identifier]["tarball"] = tarball
@@ -873,7 +872,6 @@ def call_refextract(active_file, extracted_file, harvested_identifier_list,
             current_exitcode, err_msg, dummy, pdf = \
                         plotextractor_harvest(identifier, active_file, selection=["pdf"])
             if current_exitcode != 0:
-                exitcode = current_exitcode
                 all_err_msg.append(err_msg)
             else:
                 downloaded_files[identifier]["pdf"] = pdf
@@ -952,7 +950,6 @@ def call_authorlist_extract(active_file, extracted_file, harvested_identifier_li
             current_exitcode, err_msg, tarball, dummy = \
                         plotextractor_harvest(identifier, active_file, selection=["tarball"])
             if current_exitcode != 0:
-                exitcode = current_exitcode
                 all_err_msg.append(err_msg)
             else:
                 downloaded_files[identifier]["tarball"] = tarball
@@ -1052,7 +1049,6 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
             current_exitcode, err_msg, dummy, pdf = \
                         plotextractor_harvest(identifier, active_file, selection=["pdf"])
             if current_exitcode != 0:
-                exitcode = current_exitcode
                 all_err_msg.append(err_msg)
             else:
                 downloaded_files[identifier]["pdf"] = pdf
@@ -1227,11 +1223,17 @@ def create_ticket(queue, subject, text=""):
         write_message("BibCatalog error: %s\n" % (bibcatalog_response,))
         return None
 
-    ticketid = bibcatalog_system.ticket_submit(subject=subject, queue=queue)
+    try:
+        ticketid = bibcatalog_system.ticket_submit(subject=subject, queue=queue)
+    except ValueError, e:
+        write_message("Error creating ticket: %s" % (str(e),))
+        return None
     if text:
-        comment = bibcatalog_system.ticket_comment(None, ticketid, text)
-        if comment == None:
-            write_message("Error: commenting on ticket %s failed." % (str(ticketid),))
+        try:
+            bibcatalog_system.ticket_comment(None, ticketid, text)
+        except ValueError, e:
+            write_message("Error commenting on ticket %s: %s" % (str(ticketid), str(e)))
+            return None
     return ticketid
 
 
@@ -1623,10 +1625,12 @@ def append_arxiv_id_to_file(filepath, identifier):
     Only a temporary function until SPIRES shutoff.
     """
     id_arxiv = "arXiv:%s" % (re.findall('[a-zA-Z\\-]+/\\d+|\\d+\\.\\d+', identifier)[0],)
-    fd_authorlist = open(filepath, 'a')
-    fd_authorlist.write("%s\n" % (id_arxiv,))
-    fd_authorlist.close()
-
+    try:
+        fd_authorlist = open(filepath, 'a')
+        fd_authorlist.write("%s\n" % (id_arxiv,))
+        fd_authorlist.close()
+    except IOError:
+        pass
 ### okay, here we go:
 if __name__ == '__main__':
     main()
