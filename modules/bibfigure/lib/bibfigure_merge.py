@@ -74,7 +74,6 @@ def merging_latex_pdf(file_xml, file_json, id_fulltext, extracted):
 	write_message("Merge file %s" %marc_path)
 	return (code, message, figures, marc_path)
 
-
 def create_MARCXML_old_format(figures, extracted, write_file=True):
 	"""
 	Function that creates a file MARCXML in old format - see code in plotextractor_output_utils.py
@@ -504,6 +503,7 @@ def pdf_is_in_multiple_tuples(tuples):
 			dict[index_pdf] = list
 	return dict
 
+
 def similarity(list_latex, list_pdf):
 	"""
 	The function that takes two lists of figures and detects the matches between them
@@ -614,7 +614,6 @@ def similarity(list_latex, list_pdf):
 			# if dictionary.values()[i] == dictionary3.values()[i]
 				a_tuple = i, dictionary.values()[i][j]
 				tuples.append(a_tuple)
-
 	return tuples
 
 
