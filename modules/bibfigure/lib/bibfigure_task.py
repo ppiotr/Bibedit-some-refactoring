@@ -109,14 +109,7 @@ def look_for_fulltext(recid):
 def task_run_core(recid):
     pdf = look_for_fulltext(recid)
     if pdf:
-        identifier = get_fieldvalues(recid, '035__a')[0]
-        tmp_path = mkdtemp(prefix='bibfigure-tmp')
-        print 'pdf', repr(pdf)
-        try:
-            merging_articles(None, pdf, identifier, tmp_path)
-        finally:
-            if tmp_path:
-                rmtree(tmp_path)
+        vector = merging_articles(None, pdf)
 
 
 def main():
