@@ -17,4 +17,5 @@
 ## along with Invenio; if not, write to the Free Software Foundation, Inc.,
 ## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
-from bibfigure_merge import merging_articles
+from bibfigure_merge import merging_articles, \
+                            create_MARCXML
