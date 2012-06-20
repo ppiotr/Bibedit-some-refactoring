@@ -279,6 +279,7 @@ if CFG_DEVEL_SITE:
 else:
     test_exports = []
 
+
 class WebInterfaceAdminPages(WebInterfaceDirectory):
     """This class implements /admin2 admin pages."""
     _exports = ['index', 'bibcirculation', 'bibsched']
@@ -363,6 +364,7 @@ class WebInterfaceInvenio(WebInterfaceSearchInterfacePages):
     textmining = WebInterfaceDocExtract()
     yourcomments = WebInterfaceYourCommentsPages()
     goto = WebInterfaceGotoPages()
+
 
 # This creates the 'handler' function, which will be invoked directly
 # by mod_python.
