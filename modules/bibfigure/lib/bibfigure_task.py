@@ -118,13 +118,9 @@ def task_run_core(recid):
             copyfileobj(open(pdf), os.fdopen(tmpfd,'w'))
             (exit_code, output_buffer,stderr_output_buffer) = run_shell_command(CFG_PDFPLOTEXTRACTOR_PATH + ' ' + tmppath)
             plotextracted_pdf_path = tmppath + ".extracted/extracted.json"
-            code, output_vector = merging_articles(None, plotextracted_pdf_path)
+            code, output_vector, extracted = merging_articles(None, plotextracted_pdf_path)
         finally:
             os.remove(tmppath)
-            #os.remove()
-        extracted = pdf + "_merge"
-        shutil.rmtree(extracted)
-        os.mkdir(extracted)
         try:
             id_fulltext = get_fieldvalues([recid], "037_a")[0]
         except IndexError:

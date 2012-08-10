@@ -27,17 +27,19 @@ import shutil
 import os
 import re
 
-from urllib import urlretrieve
-
 from tempfile import NamedTemporaryFile
 from invenio.webinterface_handler import WebInterfaceDirectory
 
 from invenio.webuser import collect_user_info
 from invenio.webpage import page
-from invenio.config import CFG_TMPSHAREDDIR, CFG_ETCDIR, CFG_PDFPLOTEXTRACTOR_PATH
+from invenio.config import CFG_TMPSHAREDDIR, CFG_ETCDIR, CFG_PDFPLOTEXTRACTOR_PATH, \
+                           CFG_PLOTEXTRACTOR_SOURCE_BASE_URL, \
+                           CFG_PLOTEXTRACTOR_SOURCE_PDF_FOLDER, \
+                           CFG_PLOTEXTRACTOR_SOURCE_TARBALL_FOLDER
 from invenio.refextract_api import extract_references_from_file_xml, \
                                    extract_references_from_url_xml, \
                                    extract_references_from_string_xml
+from invenio.bibfigure_api import extract_plots_from_latex_and_pdf
 from invenio.bibformat_engine import format_record
 
 
@@ -47,7 +49,8 @@ from invenio.bibfigure_merge import merging_articles, \
 
 
 REGEXP_RECORD = re.compile("<record.*?>(.*?)</record>", re.DOTALL)
-REGEXP_SUBFIELD = re.compile('<subfield code="a">(.*?)</subfield>', re.DOTALL)
+REGEXP_SUBFIELD_A = re.compile('<subfield code="a">(.*?)</subfield>', re.DOTALL)
+REGEXP_SUBFIELD_D = re.compile('<subfield code="d">(.*?)</subfield>', re.DOTALL)
 
 def check_login(req):
     """Check that the user is logged in"""
@@ -85,7 +88,8 @@ def extract_from_pdf_string(pdf):
     return refs
 
 def make_arxiv_tar_url(arxiv_id):
-    return "http://arxiv.org/e-print/%s" % arxiv_id
+    #return "http://arxiv.org/e-print/%s" % arxiv_id
+    return CFG_PLOTEXTRACTOR_SOURCE_BASE_URL + CFG_PLOTEXTRACTOR_SOURCE_TARBALL_FOLDER + arxiv_id
 
 def make_arxiv_url(arxiv_id):
     """Make a url we can use to download a pdf from arxiv
@@ -177,6 +181,10 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         refrences extraction process"""
         user_info = collect_user_info(req)
         plots = None
+        list_image_names = []
+        list_caption = []
+        plots_dir = "/opt/invenio/var/www/img/plots/"
+        # unique folder name
         # Handle the 3 POST parameters
         if 'pdf' in form and form['pdf'].value:
             pdf = form['pdf'].value
@@ -192,11 +200,7 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
             (exit_code, output_buffer, stderr_output_buffer) = run_shell_command(CFG_PDFPLOTEXTRACTOR_PATH + ' ' + pdf)
             plotextracted_pdf_path = pdf + ".extracted/extracted.json"
 
-            code, figures = merging_articles(None, plotextracted_pdf_path)
-            extracted = pdf + "_merge"
-            if os.path.exists(extracted):
-                shutil.rmtree(extracted)
-            os.mkdir(extracted)
+            code, figures, extracted = merging_articles(None, plotextracted_pdf_path)
             id_fulltext = ""
             marc_path = create_MARCXML(figures, id_fulltext, code, extracted, write_file=True)
             plots += marc_path + '<br />'
@@ -204,48 +208,31 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
             f = open (marc_path, 'r')
             record_xml = f.read()
             f.close()
-
-            plots_dir = "/opt/invenio/var/www/img/plots/"
+            
+            #plots_dir = "/opt/invenio/var/www/img/plots/"
             if os.path.exists(plots_dir):
                 shutil.rmtree(plots_dir)
             os.mkdir(plots_dir)
 
             re_list = REGEXP_RECORD.findall(record_xml)
             for r in re_list:
-                re_subfield = REGEXP_SUBFIELD.findall(r)
+                re_subfield = REGEXP_SUBFIELD_A.findall(r)
                 for index, image_path in enumerate(re_subfield):
                     if index == 0:
                         run_shell_command('cp ' + image_path + ' ' + plots_dir)
 
         elif 'arxiv' in form and form['arxiv'].value:
-            url = make_arxiv_url(arxiv_id=form['arxiv'].value)
-            references_xml = extract_references_from_url_xml(url)
-
             plots = ""
-            tmp_path = '/opt/invenio/var/tmp/'
-            url_tar = make_arxiv_tar_url(arxiv_id=form['arxiv'].value)
-            filename, dummy = urlretrieve(url_tar)
-            path, tar_name = os.path.split(filename)
-            run_shell_command('cp ' + filename + ' ' + tmp_path)
-            xml = tmp_path + str(tar_name)
-            run_shell_command('/opt/invenio/bin/plotextractor -t ' + xml)
-
-            filename, dummy = urlretrieve(url)
-            path, pdf_name = os.path.split(filename)
-            run_shell_command('cp ' + filename + ' ' + tmp_path)
-            pdf = tmp_path + str(pdf_name)
-            run_shell_command(CFG_PDFPLOTEXTRACTOR_PATH + ' ' + pdf)
-
-            plots += 'TAR: ' + tmp_path + str(tar_name) + '<br />'
-            plots += 'PDF: ' + tmp_path + str(pdf_name) + '<br />'
-
-            plotextracted_xml_path = xml + '_plots/' + str(tar_name) + '.xml'
-            plotextracted_pdf_path = pdf + '.extracted/extracted.json'
-            code, figures = merging_articles(plotextracted_xml_path, plotextracted_pdf_path)
-            extracted = xml + "_merge"
-            if os.path.exists(extracted):
-                shutil.rmtree(extracted)
-            os.mkdir(extracted)
+            url_pdf = make_arxiv_url(arxiv_id=form['arxiv'].value)
+            references_xml = extract_references_from_url_xml(url_pdf)
+            url_tarball = make_arxiv_tar_url(arxiv_id=form['arxiv'].value)
+ 
+            plotextracted_xml_path, plotextracted_pdf_path = extract_plots_from_latex_and_pdf(url_tarball, url_pdf)
+            plots += 'TAR: ' + plotextracted_xml_path + '<br />'
+            plots += 'PDF: ' + plotextracted_pdf_path + '<br />'
+            
+            
+            code, figures, extracted = merging_articles(plotextracted_xml_path, None)
             id_fulltext = ""
             marc_path = create_MARCXML(figures, id_fulltext, code, extracted, write_file=True)
             plots += 'OUTPUT: ' + marc_path + '<br />'
@@ -253,19 +240,21 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
             f = open (marc_path, 'r')
             record_xml = f.read()
             f.close()
-
-            plots_dir = "/opt/invenio/var/www/img/plots/"
+            
             if os.path.exists(plots_dir):
                 shutil.rmtree(plots_dir)
             os.mkdir(plots_dir)
 
             re_list = REGEXP_RECORD.findall(record_xml)
             for r in re_list:
-                re_subfield = REGEXP_SUBFIELD.findall(r)
+                re_subfield = REGEXP_SUBFIELD_A.findall(r)
+                re_subfield_caption = REGEXP_SUBFIELD_D.findall(r) 
                 for index, image_path in enumerate(re_subfield):
                     if index == 0:
                         run_shell_command('cp ' + image_path + ' ' + plots_dir)
-
+                        list_image_names.append(os.path.split(image_path)[1])
+                        list_caption.append(re_subfield_caption[index])
+        
         elif 'url' in form and form['url'].value:
             url = form['url'].value
             references_xml = extract_references_from_url_xml(url)
@@ -294,9 +283,12 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
             if plots:
                 out += "<h2>Plots</h2>"
                 out += plots
-                dirList = os.listdir("/opt/invenio/var/www/img/plots/")
+                dirList = os.listdir(plots_dir)
+                
                 for i, fname in enumerate(dirList):
                     out += '<h3>Figure ' + str(i+1) + '</h3> <p><img src="/img/plots/' + fname + '" class="plot"></p>'
+                    index = list_image_names.index(fname)
+                    out += '<p>' + list_caption[index] + '</p>'
 
         # Render the page (including header, footer)
         return page(title='Document Extractor',
