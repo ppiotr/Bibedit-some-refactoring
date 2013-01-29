@@ -38,78 +38,77 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
     """    
 
 	(code, message, list_of_figures_from_latex, list_of_figures_from_pdf) = getFigureVectors(file_xml, file_json)
-	(tuples, to_avoid_tuples) = doMatching(list_of_figures_from_latex, list_of_figures_from_pdf)
-	"""
-	rec id
-	touples
-	to avoid touples
-	"""
-	
-	write_message("\n")
-	write_message("Important")
-	write_message("\n")
-	write_message(file_xml)
-	write_message("\n")
-	
-	for figure in list_of_figures_from_latex:
-		write_message("Fig latex with caption[%s]\n"%figure.caption)
-		for i in range(len(figure.files)):
-			write_message("Fig latex with path[%s]\n"%figure.files[i].path)
-
+	(tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf) = doMatching(list_of_figures_from_latex, list_of_figures_from_pdf)
 		
-	for figure in list_of_figures_from_pdf:
-		write_message("Fig pdf with caption[%s]\n"%figure.caption)
-		for i in range(len(figure.files)):
-			write_message("Fig pdf with path[%s]\n"%figure.files[i].path)
+for figure in list_of_figures_from_latex:
+	write_message("Fig latex with caption[%s]\n"%figure.caption)
+	for i in range(len(figure.files)):
+		write_message("Fig latex with path[%s]\n"%figure.files[i].path)
+
 	
-	write_message(tuples)
-	write_message("\n")
-	write_message(to_avoid_tuples)
-	write_message("\n")
-	write_message("End")
-	write_message("\n")
-	
-	# list of figures after merging the lists from latex and pdf
-	figures = doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf)
-	#first_caption = figures[0].caption
-	first_caption = ""
-	marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
-	
-	return (code, message, figures, first_caption, marc_path)
+for figure in list_of_figures_from_pdf:
+	write_message("Fig pdf with caption[%s]\n"%figure.caption)
+	for i in range(len(figure.files)):
+		write_message("Fig pdf with path[%s]\n"%figure.files[i].path)
+
+write_message(tuples)
+write_message("\n")
+write_message(to_avoid_tuples)
+write_message("\n")
+write_message("End")
+write_message("\n")
+
+# list of figures after merging the lists from latex and pdf
+figures = doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf)
+#first_caption = figures[0].caption
+first_caption = ""
+marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
+
+return (code, message, figures, first_caption, marc_path)
 
 
 def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
-	"""
-	Function that creates a file MARCXML from the vector of figures
+"""
+Function that creates a file MARCXML from the vector of figures
+
+@param figures: the list of all figures
+@param id_fulltext: the id of the fulltext
+@param code: The code for Latex, PDF or both 
+@param extracted: where the file will be generated
+@param write_file: it's True when the user wants to write the data into file
+
+@return: the path to the MARCXML file 
+"""
+both_doc = 0
+no_latex = 1
+no_pdf = 2
+list = []
+list.append('<?xml version="1.0" encoding="UTF-8"?>')
+list.append('<collection>')
+list.append('<record>')
+
+figure_number = 1
+for figure in figures:
 	
-	@param figures: the list of all figures
-	@param id_fulltext: the id of the fulltext
-	@param code: The code for Latex, PDF or both 
-	@param extracted: where the file will be generated
-	@param write_file: it's True when the user wants to write the data into file
-	
-	@return: the path to the MARCXML file 
-	"""
-	both_doc = 0
-	no_latex = 1
-	no_pdf = 2
-	list = []
-	list.append('<?xml version="1.0" encoding="UTF-8"?>')
-	list.append('<collection>')
-	list.append('<record>')
-	
-	figure_number = 1
-	for figure in figures:
-		
-		for i in range(len(figure.files)):
-			list.append('  <datafield tag="FFT" ind1=" " ind2=" ">')
-			list.append('    <subfield code="a">' + figure.files[i].path + '</subfield>')
-			list.append('    <subfield code="r">restricted_pict</subfield>')
-			list.append('    <subfield code="n">' + figure.identifier + '</subfield>')
-			list.append('	 <subfield code="d">' + figure.caption + '</subfield>')
-			list.append('	 <subfield code="i">TMP:OAI:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
-			list.append('	 <subfield code="v">TMP:OAI:' + str(figure_number) + '</subfield>')
-			
+	for i in range(len(figure.files)):
+			text_references = ""
+			if not figure.files[i].path.endswith("context"):
+				list.append('    <datafield tag="FFT" ind1=" " ind2=" ">')
+				list.append('      <subfield code="a">' + figure.files[i].path + '</subfield>')
+				list.append('      <subfield code="r">restricted_pict</subfield>')
+				list.append('      <subfield code="n">' + figure.identifier + '</subfield>')
+				list.append('      <subfield code="d">' + figure.caption + '</subfield>')
+				if i == 0:
+					list.append('      <subfield code="i">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
+					list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
+				list.append('    </datafield>')
+				
+			else:
+				text_references = figure.text_references
+			if i < len(figure.files)-1:
+				list.append('\n')
+#			if i == len(figure.files) - 1:
+#				list.append('  </record>')
 			# if we have the fulltext pdf we add the BRT tag after the FFT tag
 			if code != no_pdf and i == len(figure.files) - 1:
 				list.append('  <datafield tag="BRT" ind1=" " ind2=" ">')
@@ -138,7 +137,8 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 							dict["figures"][item]["boundary"]["y"]=figure.get_location(i).boundary.y
 						if i==0:
 							dict["figures"][item]["page_scale"]=figure.get_location(i).page_scale
-			
+				dict["figures"]["text_references"] = text_references
+				
 				d = cPickle.dumps(dict)
 				info = base64.encodestring(d)
 				list.append('	<subfield code="m">' + info + '</subfield>')
@@ -209,6 +209,73 @@ def create_MARCXML(figures, id, write_file=True):
 	return marc_path
 '''
 
+
+def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf):
+	"""
+	Function that merges the lists of figures, taking in account tuples and to avoid tuples
+	
+	@param tuples: the index of figures that are the same
+	@param to_avoid_tuples: the index of figures that we should remove, is an "arrow" concept
+	@param list_of_figures_from_latex: the list of all figures that come from latex extractor
+	@param list_of_figures_from_pdf: the list of all figures that come from pdf extractor
+	
+	@return: the list of figures after merging process 
+	"""
+	outputVector = []
+
+	for a_tuple in tuples:
+		index_figure_latex = a_tuple[0]
+		index_figure_pdf = a_tuple[1]
+		
+		figure_pdf = list_of_figures_from_pdf[index_figure_pdf]
+		id = figure_pdf.identifier
+		s_d = figure_pdf.source_document
+		c = figure_pdf.caption
+		c_f = figure_pdf.caption_file
+		f = figure_pdf.files
+		l = figure_pdf.location
+		c_l = figure_pdf.caption_location
+		a_i = figure_pdf.annotated_image
+		
+		figure_latex = list_of_figures_from_latex[index_figure_latex]
+		for index, a_file in enumerate(figure_latex.files):
+			if index != 0:
+				f.append(a_file)
+		
+		s = figure_latex.status
+		t_r = figure_latex.text_references
+
+		# or create a class for a final figure with the fields we are interested
+		outputVector.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i, status=s, text_references=t_r))
+
+	index_latex_figures = [a_tuple[0] for a_tuple in tuples]
+	index_avoid_latex_figures = [a_tuple[0] for a_tuple in to_avoid_tuples]
+	for index, figure in enumerate(list_of_figures_from_latex):
+		if index not in index_latex_figures and index not in index_avoid_latex_figures:  
+				id = figure.identifier
+				c = figure.caption
+				f = figure.files
+				s = figure.status
+				t_r = figure.text_references
+				outputVector.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r))		
+	
+	index_pdf_figures = [a_tuple[1] for a_tuple in tuples]
+	index_avoid_pdf_figures = [a_tuple[1] for a_tuple in to_avoid_tuples]
+	for index, figure in enumerate(list_of_figures_from_pdf):
+		if index not in index_pdf_figures and index not in index_avoid_pdf_figures:
+			id = figure.identifier
+			s_d = figure.source_document
+			c = figure.caption
+			c_f = figure.caption_file
+			f = figure.files
+			l = figure.location
+			c_l = figure.caption_location
+			a_i = figure.annotated_image
+			outputVector.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i))
+	return outputVector
+
+
+'''
 def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf):
 	"""
 	Function that merges the lists of figures, taking in account tuples and to avoid tuples
@@ -282,7 +349,7 @@ def doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figur
 		t_r = figure.text_references
 		outputVector.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r))
 	return outputVector
-
+'''
 
 '''
 # TODO: when having a pdf and a latex, the caption from the pdf is taken. So if the caption of the pdf is empty,
@@ -379,7 +446,72 @@ def doMatching(list_latex, list_pdf):
 	
 	@return: the matching tuples and the tuples to avoid
 	"""
-	tuples = similarity(list_latex, list_pdf)
+	#tuples, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
+	distances, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
+	tuples = []
+	to_avoid_tuples = []
+	
+	list_of_index_list = []
+	for i in range(len(list_pdf)):
+		index_list = [distance[i] for distance in distances]
+		list_of_index_list.append(index_list)
+	
+	for i in range(len(list_of_index_list)):
+		if len(list_of_index_list[i]) != 0:
+			min_value = min(list_of_index_list[i])
+			index_min_value = list_of_index_list[i].index( min_value )
+			tuples.append((index_min_value, i))
+	
+	write_message("!!!!!!!11")
+	write_message( tuples )
+	write_message("!!!!!!!11")
+	to_remove = []
+	for tuple_i in tuples:
+		for tuple_j in tuples:
+
+			i = tuples.index(tuple_i)
+			j = tuples.index(tuple_j)
+			if(i != j):
+				if(tuple_i[0] == tuple_j[0]):
+					if(tuple_i not in to_avoid_tuples):
+						if(i<j):
+							argument = tuple_j[0], tuple_j[1]
+							to_avoid_tuples.append(argument)
+						if(i>j):
+							argument = tuple_i[0], tuple_i[1]
+							to_avoid_tuples.append(argument)
+				if(tuple_i[1] == tuple_j[1]):
+					if(tuple_i not in to_avoid_tuples):
+						if(i<j):
+							argument = tuple_j[0], tuple_j[1]
+							to_avoid_tuples.append(argument)
+						if(i>j):
+							argument = tuple_i[0], tuple_i[1]
+							to_avoid_tuples.append(argument)
+					
+	# example
+	# before tuples was: (1,1), (1,2), (2,3), (4,5), we delete the touple (1,2)
+	# tuples : (1,1), (2,3), (4,5)
+	# to_avoid_tuples: (1,2)				
+	write_message(to_avoid_tuples)
+	for a_tuple in to_avoid_tuples:
+		tuples.remove(a_tuple)
+	to_avoid_tuples = []
+	return (tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf)
+
+'''
+def doMatching(list_latex, list_pdf):
+	"""
+	Function that compares all the figures in the list pdf with those in the list latex (levenshtein distance)
+	If are identical, create a tuple (index, index)
+	The comparison is made by the image caption
+	
+	@param list_latex: the list with all figures fom latex source
+	@param list_pdf: the list with all figures from pdf source
+	
+	@return: the matching tuples and the tuples to avoid
+	"""
+	tuples, updated_list_latex, updated_list_pdf = similarity(list_latex, list_pdf)
 	to_avoid_tuples = []
 	for tuple_i in tuples:
 		for tuple_j in tuples:
@@ -405,14 +537,13 @@ def doMatching(list_latex, list_pdf):
 							to_avoid_tuples.append(argument)
 	
 	# example
-	# before touples was: (1,1), (1,2), (2,3), (4,5), we delete the touple (1,2)
-	# touples : (1,1), (2,3), (4,5)
+	# before tuples was: (1,1), (1,2), (2,3), (4,5), we delete the touple (1,2)
+	# tuples : (1,1), (2,3), (4,5)
 	# to_avoid_tuples: (1,2)				
 	for a_tuple in to_avoid_tuples:
 		tuples.remove(a_tuple)
 	
-	return (tuples, to_avoid_tuples)
-
+	return (tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf)
 
 def similarity(list_latex, list_pdf):
 	"""
@@ -453,7 +584,7 @@ def similarity(list_latex, list_pdf):
 	dictionary2 = {}
 	# used for direct comparison
 	dictionary3 = {}
-
+	new_feature_list = []
 	for i in range(len(caption_list_latex)):
 		distances = []
 		lcss = []
@@ -467,7 +598,7 @@ def similarity(list_latex, list_pdf):
 			C = LCS(X, Y)
 			lcs = iterative(C, X, Y, m, n)
 			lcss.append(lcs)
-
+		new_feature_list.append(distances)
 		max_distance = 0
 		index_max = 0
 		# the list we use in representing the longest common subsequence
@@ -506,7 +637,8 @@ def similarity(list_latex, list_pdf):
 				if(n != 0):
 					index_min_elem_list.append(k)
 				n=1
-
+		
+		
 		dictionary[i] = index_min_elem_list
 		print dictionary
 		
@@ -523,7 +655,7 @@ def similarity(list_latex, list_pdf):
 			# if dictionary.values()[i] == dictionary3.values()[i]
 				a_tuple = i, dictionary.values()[i][j]
 				tuples.append(a_tuple)
-	return tuples
+	return new_feature_list, clone_list_latex, clone_list_pdf
 
 
 def similarity_between_caption1_and_caption2(caption1, caption2, list1, list2):

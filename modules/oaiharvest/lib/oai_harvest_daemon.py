@@ -91,14 +91,6 @@ from invenio.oai_harvest_utils import get_nb_records_in_file, \
                                       generate_harvest_report
 from invenio.webuser import email_valid_p
 from invenio.mailutils import send_email
-
-
-
-#from invenio.config import CFG_PDFPLOTEXTRACTOR_PATH
-#from invenio import bibfigure, \
-#                    bibfigure_merge, \
-#                    bibfigure_utils
-
 from invenio.bibfigure_merge import merging_articles, \
                                     create_MARCXML, \
                                     getFigureVectors
@@ -1089,18 +1081,20 @@ def call_authorlist_extract(active_file, extracted_file, harvested_identifier_li
     if len(all_err_msg) > 0:
         return exitcode, "\n".join(all_err_msg)
     return exitcode, ""
-
+       
+        
+        
 def call_fulltext(active_file, extracted_file, harvested_identifier_list,
-                  downloaded_files, doctype=""):
+                  downloaded_files, arguments):
     """
-    Function that calls attach FFT tag for a downloaded file to harvested records.
+    Function that calls attach FFT tag for full-text pdf to harvested records.
     It will download the fulltext-pdf for each identifier if necessary.
 
     @param active_file: path to the currently processed file
     @param extracted_file: path to the file where the final results will be saved
     @param harvested_identifier_list: list of OAI identifiers for this active_file
     @param downloaded_files: dict of identifier -> dict mappings for downloaded material.
-    @param doctype: doctype of downloaded file in BibDocFile
+    @param arguments: dict of arguments to post-process steps
 
     @return: exitcode and any error messages as: (exitcode, err_msg)
     """
@@ -1111,35 +1105,47 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
     records = recs_fd.read()
     recs_fd.close()
 
+    # Set doctype
+    doctype = arguments.get('t_doctype', "")
+
     # Find all records
     record_xmls = REGEXP_RECORD.findall(records)
+    
     updated_xml = ['<?xml version="1.0" encoding="UTF-8"?>']
     updated_xml.append('<collection>')
     i = 0
     for record_xml in record_xmls:
-        current_exitcode = 0
-        identifier = harvested_identifier_list[i]
-        i += 1
-        if identifier not in downloaded_files:
-            downloaded_files[identifier] = {}
+        #write_message("a record in the list of records of an article(initial and figures)")
         updated_xml.append("<record>")
         updated_xml.append(record_xml)
-        if "pdf" not in downloaded_files[identifier]:
-            current_exitcode, err_msg, dummy, pdf = \
-                        plotextractor_harvest(identifier, active_file, selection=["pdf"])
-            if current_exitcode != 0:
-                all_err_msg.append(err_msg)
-            else:
-                downloaded_files[identifier]["pdf"] = pdf
-        if current_exitcode == 0:
-            fulltext_xml = """  <datafield tag="FFT" ind1=" " ind2=" ">
-    <subfield code="a">%(url)s</subfield>
-    <subfield code="t">%(doctype)s</subfield>
-    <subfield code="i">%(identifier)s</subfield>
-    <subfield code="v">%(identifier)s</subfield>
-  </datafield>""" % {'url': downloaded_files[identifier]["pdf"],
-                     'doctype': doctype}
-            updated_xml.append(fulltext_xml)
+
+        
+        if "tag=\"003\"" in record_xml:
+            identifier = harvested_identifier_list[i]
+            if identifier not in downloaded_files:
+                downloaded_files[identifier] = {}
+            current_exitcode = 0
+            i += 1
+            if "pdf" not in downloaded_files[identifier]:
+                current_exitcode, err_msg, dummy, pdf = \
+                            plotextractor_harvest(identifier, active_file, selection=["pdf"])
+                if current_exitcode != 0:
+                    exitcode = current_exitcode
+                    all_err_msg.append(err_msg)
+                else:
+                    downloaded_files[identifier]["pdf"] = pdf
+            if current_exitcode == 0:
+                fulltext_xml = """  <datafield tag="FFT" ind1=" " ind2=" ">
+        <subfield code="a">%(url)s</subfield>
+        <subfield code="t">%(doctype)s</subfield>
+        <subfield code="i">%(identifier)s</subfield>
+        <subfield code="v">%(version)s</subfield>
+      </datafield>""" % {'url': downloaded_files[identifier]["pdf"],
+                         'doctype': doctype,
+                         'identifier':'TMP:'+identifier,
+                         'version':'TMP:'+identifier+':v'}
+                updated_xml.append(fulltext_xml)
+        
         updated_xml.append("</record>")
     updated_xml.append('</collection>')
     # Write to file
