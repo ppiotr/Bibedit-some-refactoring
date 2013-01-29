@@ -1,0 +1,11 @@
+#!/usr/bin/python2.7
+try:
+	import sys
+	from invenio.bibfigure_merge import main
+except ImportError, e:
+	print "Error: %s" % e
+	import sys
+	sys.exit(1)
+
+main()
+	

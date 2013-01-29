@@ -22,6 +22,7 @@ import os
 import getopt
 import re
 import time
+import datetime
 
 from invenio.shellutils import run_shell_command, Timeout, run_process_with_timeout
 from invenio.invenio_connector import InvenioConnector
@@ -31,7 +32,9 @@ from invenio.config import CFG_TMPDIR, CFG_SITE_URL, \
                            CFG_PLOTEXTRACTOR_DISALLOWED_TEX, \
                            CFG_PLOTEXTRACTOR_CONTEXT_WORD_LIMIT, \
                            CFG_PLOTEXTRACTOR_CONTEXT_SENTENCE_LIMIT, \
-                           CFG_PLOTEXTRACTOR_CONTEXT_EXTRACT_LIMIT
+                           CFG_PLOTEXTRACTOR_CONTEXT_EXTRACT_LIMIT, \
+                           CFG_PDFPLOTEXTRACTOR_PATH
+
 from invenio.bibtask import task_low_level_submission
 from invenio.plotextractor_getter import get_list_of_all_matching_files, \
                                          parse_and_download, \
@@ -47,6 +50,9 @@ from invenio.plotextractor_output_utils import assemble_caption, \
                                                create_contextfiles, \
                                                prepare_image_data, \
                                                write_message, remove_dups
+from invenio.bibfigure_merge import merging_articles, \
+                                    create_MARCXML, \
+                                    getFigureVectors
 from tempfile import mkstemp
 
 
@@ -195,6 +201,22 @@ def main():
         write_message("generated %s" % (squash_path,))
         if upload_plots:
             upload_to_site(squash_path, yes_i_know)
+
+def process_pdf(pdf, id):
+    write_message("process pdf")
+    (exit_code, output_buffer,stderr_output_buffer) = run_shell_command(CFG_PDFPLOTEXTRACTOR_PATH + ' ' + pdf)
+    plotextracted_pdf_path = pdf + ".extracted/extracted.json"
+    
+    (code, message, dummy, list_of_figures_from_pdf) = getFigureVectors('', plotextracted_pdf_path)
+    extracted = pdf + ".extracted"
+    # Create MARCXML from json file  
+    # @param extracted - output file with the MARCXML  
+    marc_path = create_MARCXML(list_of_figures_from_pdf, id, code, extracted, True)
+    write_message("end process pdf")
+    now = datetime.datetime.now()
+    stderr_output_buffer = "[" + str(now) + "]: The Pdf extractor for the file " + pdf + " has an error. The traceback:\n" + stderr_output_buffer
+    return (exit_code, stderr_output_buffer, plotextracted_pdf_path, marc_path)
+
 
 def process_single(tarball, sdir=CFG_TMPDIR, xtract_text=False, \
                    upload_plots=False, force=False, squash="", \

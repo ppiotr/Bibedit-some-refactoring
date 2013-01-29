@@ -49,10 +49,10 @@ CFG_OAI_POSSIBLE_POSTMODES = [
           [{'name': 'extraction-source',
             'required': True,
             'validation': None,
-            'value': ["latex"],
+            'value': ["latex", "pdf"],
             'input': "checkbox",
-            'labels': ["LaTeX"],
-            'states': [True]}]
+            'labels': ["LaTeX", "PDF"],
+            'states': [True, False]}]
          ],
          ["r",
           "extract references (r)",
