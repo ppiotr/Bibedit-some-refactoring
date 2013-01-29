@@ -50,7 +50,7 @@ from invenio.plotextractor_output_utils import assemble_caption, \
                                                create_contextfiles, \
                                                prepare_image_data, \
                                                write_message, remove_dups
-from invenio.bibfigure_merge import merging_articles, \
+from invenio.bibfigure_merge import merging_latex_pdf, \
                                     create_MARCXML, \
                                     getFigureVectors
 from tempfile import mkstemp
@@ -215,6 +215,7 @@ def process_pdf(pdf, id):
     write_message("end process pdf")
     now = datetime.datetime.now()
     stderr_output_buffer = "[" + str(now) + "]: The Pdf extractor for the file " + pdf + " has an error. The traceback:\n" + stderr_output_buffer
+    exit_code = 100;
     return (exit_code, stderr_output_buffer, plotextracted_pdf_path, marc_path)
 
 

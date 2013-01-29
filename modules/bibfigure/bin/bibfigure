@@ -1,4 +1,5 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
+
 try:
 	import sys
 	from invenio.bibfigure_merge import main

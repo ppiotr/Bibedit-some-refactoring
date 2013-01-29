@@ -26,7 +26,7 @@ from invenio.bibfigure_utils import levenshtein, \
 # together create one image)
 
 
-def merging_articles(file_xml, file_json, id_fulltext, extracted):
+def merging_latex_pdf(file_xml, file_json, id_fulltext, extracted):
 	"""
     Function that merges two files
 
@@ -35,62 +35,53 @@ def merging_articles(file_xml, file_json, id_fulltext, extracted):
 
     @return: code={0-latex and pdf figures extracted, 1-latex figures not present, 2-pdf figures not present or latex&pdf figures not present},
      		 message - any error messages, the vector of all figures and the first caption for testing purposes as: (exitcode, err_msg)
-    """    
+    """
 
 	(code, message, list_of_figures_from_latex, list_of_figures_from_pdf) = getFigureVectors(file_xml, file_json)
 	(tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf) = doMatching(list_of_figures_from_latex, list_of_figures_from_pdf)
-		
-for figure in list_of_figures_from_latex:
-	write_message("Fig latex with caption[%s]\n"%figure.caption)
-	for i in range(len(figure.files)):
-		write_message("Fig latex with path[%s]\n"%figure.files[i].path)
 
-	
-for figure in list_of_figures_from_pdf:
-	write_message("Fig pdf with caption[%s]\n"%figure.caption)
-	for i in range(len(figure.files)):
-		write_message("Fig pdf with path[%s]\n"%figure.files[i].path)
+	for figure in list_of_figures_from_latex:
+		write_message("Fig latex with caption[%s]\n"%figure.caption)
+		for i in range(len(figure.files)):
+			write_message("Fig latex with path[%s]\n"%figure.files[i].path)
 
-write_message(tuples)
-write_message("\n")
-write_message(to_avoid_tuples)
-write_message("\n")
-write_message("End")
-write_message("\n")
 
-# list of figures after merging the lists from latex and pdf
-figures = doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf)
-#first_caption = figures[0].caption
-first_caption = ""
-marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
+	for figure in list_of_figures_from_pdf:
+		write_message("Fig pdf with caption[%s]\n"%figure.caption)
+		for i in range(len(figure.files)):
+			write_message("Fig pdf with path[%s]\n"%figure.files[i].path)
 
-return (code, message, figures, first_caption, marc_path)
+	# list of figures after merging the lists from latex and pdf
+	figures = doMerging(tuples, to_avoid_tuples, list_of_figures_from_latex, list_of_figures_from_pdf)
+	first_caption = ""
+	marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
+
+	return (code, message, figures, first_caption, marc_path)
 
 
 def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
-"""
-Function that creates a file MARCXML from the vector of figures
-
-@param figures: the list of all figures
-@param id_fulltext: the id of the fulltext
-@param code: The code for Latex, PDF or both 
-@param extracted: where the file will be generated
-@param write_file: it's True when the user wants to write the data into file
-
-@return: the path to the MARCXML file 
-"""
-both_doc = 0
-no_latex = 1
-no_pdf = 2
-list = []
-list.append('<?xml version="1.0" encoding="UTF-8"?>')
-list.append('<collection>')
-list.append('<record>')
-
-figure_number = 1
-for figure in figures:
+	"""
+	Function that creates a file MARCXML from the vector of figures
 	
-	for i in range(len(figure.files)):
+	@param figures: the list of all figures
+	@param id_fulltext: the id of the fulltext
+	@param code: The code for Latex, PDF or both 
+	@param extracted: where the file will be generated
+	@param write_file: it's True when the user wants to write the data into file
+	
+	@return: the path to the MARCXML file 
+	"""
+	both_doc = 0
+	no_latex = 1
+	no_pdf = 2
+	list = []
+	list.append('<?xml version="1.0" encoding="UTF-8"?>')
+	list.append('<collection>')
+
+	figure_number = 1
+	for figure in figures:
+		list.append('<record>')
+		for i in range(len(figure.files)):
 			text_references = ""
 			if not figure.files[i].path.endswith("context"):
 				list.append('    <datafield tag="FFT" ind1=" " ind2=" ">')
@@ -102,7 +93,7 @@ for figure in figures:
 					list.append('      <subfield code="i">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
 					list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
 				list.append('    </datafield>')
-				
+
 			else:
 				text_references = figure.text_references
 			if i < len(figure.files)-1:
@@ -113,14 +104,14 @@ for figure in figures:
 			if code != no_pdf and i == len(figure.files) - 1:
 				list.append('  <datafield tag="BRT" ind1=" " ind2=" ">')
 				list.append('	<subfield code="i">TMP:OAI:' + str(figure_number) + '</subfield>')
-				list.append('	<subfield code="v">TMP:OAI:' + str(figure_number) + '</subfield>')
+				list.append('	<subfield code="v">TMP:OAI:' + str(figure_number) + 'v' + '</subfield>')
 				list.append('	<subfield code="j">TMP:' + str(id_fulltext) + '</subfield>')
-				list.append('	<subfield code="w">TMP:' + str(id_fulltext) + '</subfield>')
+				list.append('	<subfield code="w">TMP:' + str(id_fulltext) + 'v' +'</subfield>')
 				list.append('	<subfield code="t">is_extracted_from</subfield>')
 				dict = {}
 				dict["figures"]={}
 				dict["figures"]["caption"]=figure.caption
-				v = ["location", "caption_location"]				
+				v = ["location", "caption_location"]
 				for i, item in enumerate(v):
 					if(figure.get_location(i) != None):
 						dict["figures"][item]={}
@@ -142,10 +133,9 @@ for figure in figures:
 				d = cPickle.dumps(dict)
 				info = base64.encodestring(d)
 				list.append('	<subfield code="m">' + info + '</subfield>')
-			
-			list.append('  </datafield>')
+				list.append('  </datafield>')
 		figure_number = figure_number + 1
-	list.append('</record>')
+		list.append('</record>')
 	list.append('</collection>')
 	marc = '\n'.join(list)
 	if write_file:
@@ -544,7 +534,7 @@ def doMatching(list_latex, list_pdf):
 		tuples.remove(a_tuple)
 	
 	return (tuples, to_avoid_tuples, updated_list_latex, updated_list_pdf)
-
+'''
 def similarity(list_latex, list_pdf):
 	"""
 	The function that takes two lists of figures and detects the matches between them
@@ -655,6 +645,8 @@ def similarity(list_latex, list_pdf):
 			# if dictionary.values()[i] == dictionary3.values()[i]
 				a_tuple = i, dictionary.values()[i][j]
 				tuples.append(a_tuple)
+	clone_list_latex = []
+	clone_list_pdf = []
 	return new_feature_list, clone_list_latex, clone_list_pdf
 
 
@@ -834,7 +826,7 @@ def main():
 	else:
 		file1 = sys.argv[1]
 		file2 = sys.argv[2]
-		merging_articles(file1, file2)
+		merging_latex_pdf(file1, file2)
 	
 if __name__== "__main__":
 	main()

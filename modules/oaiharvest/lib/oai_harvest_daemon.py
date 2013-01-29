@@ -91,7 +91,7 @@ from invenio.oai_harvest_utils import get_nb_records_in_file, \
                                       generate_harvest_report
 from invenio.webuser import email_valid_p
 from invenio.mailutils import send_email
-from invenio.bibfigure_merge import merging_articles, \
+from invenio.bibfigure_merge import merging_latex_pdf, \
                                     create_MARCXML, \
                                     getFigureVectors
 
@@ -781,7 +781,7 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
     
     plotextracted_paths = []
     # Read in active file
-    recs_fd = open(active_file, 'r')
+    recs_fd = codecs.open(active_file, encoding="utf-8", mode='r')
     records = recs_fd.read()
     recs_fd.close()
 
@@ -799,9 +799,15 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
             downloaded_files[identifier] = {}
         
         #write_message(downloaded_files)
-        updated_xml.append("<record>")
+        updated_xml.append(u'<record>')
         updated_xml.append(record_xml)
+        updated_xml.append(u'</record>')
         final_output = ""
+        param1 = ""
+        param2 = ""
+        
+        # first for latex, second for pdf
+        plotextracted_paths=["",""]
 
         if 'latex' in plotextractor_types:
             # Run LaTeX plotextractor
@@ -817,7 +823,7 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                 if plotextracted_xml_path != None:
                     # We store the path to the directory the tarball contents live
                     downloaded_files[identifier]["tarball-extracted"] = os.path.split(plotextracted_xml_path)[0]
-                    plotextracted_paths.append(plotextracted_xml_path)
+                    plotextracted_paths[0] = plotextracted_xml_path
         
         if 'pdf' in plotextractor_types:
             if "pdf" not in downloaded_files[identifier]:
@@ -831,7 +837,10 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                     write_message("%s\n"%downloaded_files[identifier]["pdf"])
             # run pdf extractor and get the path for the extracted.json file
             if current_exitcode == 0:
+                write_message("before")
                 (code, message, plotextracted_pdf_path, pdf_to_marcxml_path) = process_pdf(downloaded_files[identifier]["pdf"], identifier)
+                write_message("after")
+                write_message("%d\n"%code)
                 if str(code) != "0":
                     # write message into the log file
                     # Open the log file in order to write the errors it might appear
@@ -841,29 +850,32 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                 if plotextracted_pdf_path != None:
                     downloaded_files[identifier]["pdf-extracted"] = os.path.split(plotextracted_pdf_path)[0]
                     write_message("%s\n"%downloaded_files[identifier]["pdf-extracted"])
-                    plotextracted_paths.append(plotextracted_pdf_path)
-            
-        param1 = ""
-        param2 = ""
-        if len(plotextracted_paths) == 2:
-            param1 = plotextracted_paths[0]
-            param2 = plotextracted_paths[1]
-        else:
-            if("extracted.json" in plotextracted_paths[0]):
-                param1 = ""
-                param2 = plotextracted_paths[0]
-            else:
-                param1 = plotextracted_paths[0]
-                param2 = ""
-        # we have the first path of extracted file and we delete two tails so that the remaining path will be the identifier path
-        extracted = os.path.split(os.path.split(plotextracted_paths[0])[0])[0]
-        name_tail = os.path.split(os.path.split(os.path.split(plotextracted_paths[0])[0])[0])[1]
-        current_path = os.getcwd()
-        os.chdir(extracted)
-        os.mkdir(extracted + "/" + name_tail + "_merge")
-        extracted = extracted + "/" + name_tail + "_merge"
-        os.chdir(current_path)
-        (code, message, outputVector,first_caption, marc_path) = merging_articles(param1, param2, identifier, extracted)
+                    plotextracted_paths[1] = plotextracted_pdf_path
+        write_message(plotextracted_paths)
+        #check if the files were extracted
+        if (plotextracted_paths[0] != ""):
+            # we have the first path of extracted file and we delete two tails so that the remaining path will be the identifier path
+            extracted = os.path.split(os.path.split(plotextracted_paths[0])[0])[0]
+            name_tail = os.path.split(extracted)[1]
+            current_path = os.getcwd()
+            os.chdir(extracted)
+            extracted = extracted + "/" + name_tail + "_merge"
+            os.mkdir(extracted)
+            os.chdir(current_path)
+        elif (plotextracted_paths[1] != ""):
+            extracted = os.path.split(os.path.split(plotextracted_paths[1])[0])[0]
+            name_tail = os.path.split(extracted)[1]
+            current_path = os.getcwd()
+            os.chdir(extracted)
+            extracted = extracted + "/" + name_tail + "_merge"
+            os.mkdir(extracted)
+            os.chdir(current_path)
+        elif (plotextracted_paths[0] == "" and plotextracted_paths[1] == ""):
+            extracted = downloaded_files[identifier]['tarball']
+            extracted = os.path.split(extracted)[0]
+            #name_tail = os.path.split(extracted)[1]
+            #extracted = extracted + "/" + name_tail + "_merge"
+        (code, message, outputVector,first_caption, marc_path) = merging_latex_pdf(plotextracted_paths[0], plotextracted_paths[1], identifier, extracted)
         write_message("%s\n"%first_caption)
         # make empty list
         plotextracted_paths=[]
@@ -872,24 +884,28 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
         plots_fd.close()
         re_list = REGEXP_RECORD.findall(marcxml_content)
         if re_list != []:
+            for rec in re_list:
+                updated_xml.append("<record>")
+                updated_xml.append(rec)
+                updated_xml.append("</record>")
             # Add final FFT info from LaTeX plotextractor to record.
-            updated_xml.append(re_list[0])
-        write_message(identifier)
+            #updated_xml.append(re_list[0])
+        #write_message(identifier)
         write_message('---------------------------------------------------------------')
 
-        updated_xml.append("</record>")
-    updated_xml.append('</collection>')
+        #updated_xml.append("</record>")
+    updated_xml.append(u'</collection>')
     
     # Write to file
     file_fd = codecs.open(extracted_file, encoding="utf-8", mode="w")
     #file_fd = open(extracted_file, 'w')
-    file_fd.write("\n".join(updated_xml))
+    file_fd.write(u'\n'.join(updated_xml))
     file_fd.close()
     if len(all_err_msg) > 0:
         return exitcode, "\n".join(all_err_msg)
     return exitcode, ""
-        
-        
+
+
 def call_refextract(active_file, extracted_file, harvested_identifier_list,
                     downloaded_files, arguments):
     """
@@ -1118,9 +1134,11 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
         #write_message("a record in the list of records of an article(initial and figures)")
         updated_xml.append("<record>")
         updated_xml.append(record_xml)
-
-        
-        if "tag=\"003\"" in record_xml:
+        write_message("#$@$@#$")
+        write_message(record_xml)
+        write_message("#$@$@#$")
+        #if "<author>tag=\"003\"" in record_xml:
+        if "<author>" in record_xml:
             identifier = harvested_identifier_list[i]
             if identifier not in downloaded_files:
                 downloaded_files[identifier] = {}
