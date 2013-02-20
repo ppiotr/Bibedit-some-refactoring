@@ -1,5 +1,4 @@
-#!/usr/bin/python
-
+#!/home/daniel/envs/atlantis/bin/python
 try:
 	import sys
 	from invenio.bibfigure_merge import main

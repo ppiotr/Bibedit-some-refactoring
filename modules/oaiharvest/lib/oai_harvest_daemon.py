@@ -798,7 +798,6 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
         if identifier not in downloaded_files:
             downloaded_files[identifier] = {}
         
-        #write_message(downloaded_files)
         updated_xml.append(u'<record>')
         updated_xml.append(record_xml)
         updated_xml.append(u'</record>')
@@ -834,13 +833,10 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                     all_err_msg.append(err_msg)
                 else:
                     downloaded_files[identifier]["pdf"] = pdf
-                    write_message("%s\n"%downloaded_files[identifier]["pdf"])
+                    #write_message("%s\n"%downloaded_files[identifier]["pdf"])
             # run pdf extractor and get the path for the extracted.json file
             if current_exitcode == 0:
-                write_message("before")
                 (code, message, plotextracted_pdf_path, pdf_to_marcxml_path) = process_pdf(downloaded_files[identifier]["pdf"], identifier)
-                write_message("after")
-                write_message("%d\n"%code)
                 if str(code) != "0":
                     # write message into the log file
                     # Open the log file in order to write the errors it might appear
@@ -849,9 +845,9 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                     file_desc.close()
                 if plotextracted_pdf_path != None:
                     downloaded_files[identifier]["pdf-extracted"] = os.path.split(plotextracted_pdf_path)[0]
-                    write_message("%s\n"%downloaded_files[identifier]["pdf-extracted"])
+                    #write_message("%s\n"%downloaded_files[identifier]["pdf-extracted"])
                     plotextracted_paths[1] = plotextracted_pdf_path
-        write_message(plotextracted_paths)
+
         #check if the files were extracted
         if (plotextracted_paths[0] != ""):
             # we have the first path of extracted file and we delete two tails so that the remaining path will be the identifier path
@@ -875,8 +871,7 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
             extracted = os.path.split(extracted)[0]
             #name_tail = os.path.split(extracted)[1]
             #extracted = extracted + "/" + name_tail + "_merge"
-        (code, message, outputVector,first_caption, marc_path) = merging_latex_pdf(plotextracted_paths[0], plotextracted_paths[1], identifier, extracted)
-        write_message("%s\n"%first_caption)
+        (code, message, outputVector, marc_path) = merging_latex_pdf(plotextracted_paths[0], plotextracted_paths[1], identifier, extracted)
         # make empty list
         plotextracted_paths=[]
         plots_fd = codecs.open(marc_path, encoding="utf-8", mode="r")
@@ -890,8 +885,6 @@ def call_plotextractor(active_file, extracted_file, harvested_identifier_list, \
                 updated_xml.append("</record>")
             # Add final FFT info from LaTeX plotextractor to record.
             #updated_xml.append(re_list[0])
-        #write_message(identifier)
-        write_message('---------------------------------------------------------------')
 
         #updated_xml.append("</record>")
     updated_xml.append(u'</collection>')
@@ -1101,7 +1094,7 @@ def call_authorlist_extract(active_file, extracted_file, harvested_identifier_li
         
         
 def call_fulltext(active_file, extracted_file, harvested_identifier_list,
-                  downloaded_files, arguments):
+                  downloaded_files, doctype):
     """
     Function that calls attach FFT tag for full-text pdf to harvested records.
     It will download the fulltext-pdf for each identifier if necessary.
@@ -1110,7 +1103,7 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
     @param extracted_file: path to the file where the final results will be saved
     @param harvested_identifier_list: list of OAI identifiers for this active_file
     @param downloaded_files: dict of identifier -> dict mappings for downloaded material.
-    @param arguments: dict of arguments to post-process steps
+    @param doctype: doctype used
 
     @return: exitcode and any error messages as: (exitcode, err_msg)
     """
@@ -1120,9 +1113,6 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
     recs_fd = open(active_file, 'r')
     records = recs_fd.read()
     recs_fd.close()
-
-    # Set doctype
-    doctype = arguments.get('t_doctype', "")
 
     # Find all records
     record_xmls = REGEXP_RECORD.findall(records)
@@ -1134,11 +1124,9 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
         #write_message("a record in the list of records of an article(initial and figures)")
         updated_xml.append("<record>")
         updated_xml.append(record_xml)
-        write_message("#$@$@#$")
-        write_message(record_xml)
-        write_message("#$@$@#$")
-        #if "<author>tag=\"003\"" in record_xml:
-        if "<author>" in record_xml:
+        #if "tag=\"003\"" in record_xml:
+        #if "<author>" in record_xml:
+        if( 1 == 1):
             identifier = harvested_identifier_list[i]
             if identifier not in downloaded_files:
                 downloaded_files[identifier] = {}
@@ -1153,12 +1141,12 @@ def call_fulltext(active_file, extracted_file, harvested_identifier_list,
                 else:
                     downloaded_files[identifier]["pdf"] = pdf
             if current_exitcode == 0:
-                fulltext_xml = """  <datafield tag="FFT" ind1=" " ind2=" ">
-        <subfield code="a">%(url)s</subfield>
-        <subfield code="t">%(doctype)s</subfield>
-        <subfield code="i">%(identifier)s</subfield>
-        <subfield code="v">%(version)s</subfield>
-      </datafield>""" % {'url': downloaded_files[identifier]["pdf"],
+                fulltext_xml = """    <datafield tag="FFT" ind1=" " ind2=" ">
+      <subfield code="a">%(url)s</subfield>
+      <subfield code="t">%(doctype)s</subfield>
+      <subfield code="i">%(identifier)s</subfield>
+      <subfield code="v">%(version)s</subfield>
+    </datafield>""" % {'url': downloaded_files[identifier]["pdf"],
                          'doctype': doctype,
                          'identifier':'TMP:'+identifier,
                          'version':'TMP:'+identifier+':v'}
