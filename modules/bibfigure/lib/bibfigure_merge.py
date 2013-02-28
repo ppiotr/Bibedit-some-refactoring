@@ -66,12 +66,12 @@ def merging_latex_pdf(file_xml, file_json, id_fulltext, extracted):
 
 	(tuples, updated_list_latex, updated_list_pdf) = doMatching(list_of_figures_from_latex, list_of_figures_from_pdf)
 
-	figures = doMerging(tuples, updated_list_latex, updated_list_pdf)
+	figures = doMerging(tuples, updated_list_latex, updated_list_pdf, True)
 
 	marc_path = create_MARCXML(figures, id_fulltext, code, extracted, True)
 	# for old model
-	# marc_path = create_MARCXML(figures, extracted, True)
-
+	# marc_path = create_MARCXML_old_format(figures, extracted, True)
+	write_message("Merge file %s" %marc_path)
 	return (code, message, figures, marc_path)
 
 
@@ -149,7 +149,12 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 	list.append('<collection>')
 
 	figure_number = 1
+	parent_id = -1
 	for figure in figures:
+		if figure.subfigure != None:		
+			if 'is subfigure of' in figure.subfigure:
+				print 'ok'
+				print figure.identifier
 		list.append('<record>')
 		for i in range(len(figure.files)):
 			text_references = ""
@@ -160,8 +165,16 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 				list.append('      <subfield code="n">' + figure.identifier + '</subfield>')
 				list.append('      <subfield code="d">' + figure.caption + '</subfield>')
 				if i == 0:
-					list.append('      <subfield code="i">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
-					list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
+					if(figure.subfigure != None):
+						if 'is subfigure of' in figure.subfigure:
+							list.append('      <subfield code="i">TMP:SUBFIGURE:' + str(id_fulltext) + ':' + str(figure.subfigure_id) + '</subfield>')
+							list.append('      <subfield code="v">TMP:SUBFIGURE:' + str(id_fulltext) + ':v' + str(figure.subfigure_id) + '</subfield>')
+					else:
+						list.append('      <subfield code="i">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
+						list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
+						if figure.is_parent != None:						
+							if 'is parent' in figure.is_parent:
+								parent_id = figure_number
 				list.append('    </datafield>')
 
 			else:
@@ -176,32 +189,52 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 #				list.append('	<subfield code="i">TMP:OAI:' + str(figure_number) + '</subfield>')
 #				list.append('	<subfield code="v">TMP:OAI:' + str(figure_number) + 'v' + '</subfield>')
 # id, v1, id, v  
-				list.append('      <subfield code="i">TMP:' + str(id_fulltext) + '</subfield>')
-				list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + '</subfield>')
-				list.append('      <subfield code="j">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
-				list.append('      <subfield code="w">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
-				list.append('      <subfield code="t">is_extracted_from</subfield>')
+				if(figure.subfigure != None):
+					if 'is subfigure of' in figure.subfigure:
+						list.append('      <subfield code="i">TMP:SUBFIGURE:' + str(id_fulltext) + ':' + str(figure.subfigure_id) + '</subfield>')
+						list.append('      <subfield code="v">TMP:SUBFIGURE:' + str(id_fulltext) + ':v' + str(figure.subfigure_id) + '</subfield>')
+						list.append('      <subfield code="j">TMP:' + str(id_fulltext) + ':' + str(parent_id) + '</subfield>')
+						list.append('      <subfield code="w">TMP:' + str(id_fulltext) + ':v' + str(parent_id) + '</subfield>')
+						list.append('      <subfield code="t">is_subfigure_of</subfield>')	
+						figure_number  = figure_number - 1	
+				else:
+
+					list.append('      <subfield code="i">TMP:' + str(id_fulltext) + ':' + str(figure_number) + '</subfield>')
+					list.append('      <subfield code="v">TMP:' + str(id_fulltext) + ':v' + str(figure_number) + '</subfield>')
+					list.append('      <subfield code="j">TMP:' + str(id_fulltext) + '</subfield>')
+					list.append('      <subfield code="w">TMP:' + str(id_fulltext) + ':v' + '</subfield>')
+					list.append('      <subfield code="t">is_extracted_from</subfield>')
 				dict = {}
 				dict["figures"]={}
 				dict["figures"]["caption"]=figure.caption
+				write_message("adding field figure.caption")
 				v = ["location", "caption_location"]
 				for i, item in enumerate(v):
 					if(figure.get_location(i) != None):
 						dict["figures"][item]={}
 						dict["figures"][item]["page_num"] = figure.get_location(i).page_num
+						write_message("adding figure.get_location.page_num")
 						if(figure.get_location(i).page_resolution != None):
 							dict["figures"][item]["page_resolution"]={}
 							dict["figures"][item]["page_resolution"]["width"]=figure.get_location(i).page_resolution.width
+							write_message("adding figure.get_location.page_resolution.page_num_width")
 							dict["figures"][item]["page_resolution"]["height"]=figure.get_location(i).page_resolution.height
+							write_message("adding figure.get_location.page_resolution.height")
 						if(figure.get_location(i).boundary != None):
 							dict["figures"][item]["boundary"]={}
 							dict["figures"][item]["boundary"]["width"]=figure.get_location(i).boundary.width
+							write_message("adding figure.get_location.boundary.width")
 							dict["figures"][item]["boundary"]["height"]=figure.get_location(i).boundary.height
+							write_message("adding figure.get_location.boundary.height")
 							dict["figures"][item]["boundary"]["x"]=figure.get_location(i).boundary.x
+							write_message("adding figure.get_location.boundary.x")
 							dict["figures"][item]["boundary"]["y"]=figure.get_location(i).boundary.y
+							write_message("adding figure.get_location.boundary.y")
 						if i==0:
 							dict["figures"][item]["page_scale"]=figure.get_location(i).page_scale
+							write_message("adding figure.get_location.page_scale")
 				dict["figures"]["text_references"] = text_references
+				write_message("adding figure.text_references")
 				
 				d = cPickle.dumps(dict)
 				info = base64.encodestring(d)
@@ -219,13 +252,8 @@ def create_MARCXML(figures, id_fulltext, code, extracted, write_file=True):
 		f.close()
 	return marc_path
 
-def index_not_in_tuples(index, tuples):
-	for t in tuples:
-		if(index in t):
-			return 0
-	return 1
 
-def doMerging(tuples, list_latex, list_pdf):
+def doMerging(tuples, list_latex, list_pdf, add_subfigure=False):
 	"""
 	Function that goes through tuples and merge. The rest of figures are taken from
 	untouched figures from latex and pdf.
@@ -237,8 +265,51 @@ def doMerging(tuples, list_latex, list_pdf):
 	@return figures: the list of figures after merging process
 	"""
 	figures = []
-	write_message(tuples);
-	for index, t in enumerate(tuples):
+	merge_tuples = [tuple for tuple in tuples]
+
+	if add_subfigure:
+		# dict = {p:[l,l,l], p:[l,l,l]}
+		dict = pdf_is_in_multiple_tuples(tuples)
+
+		for p in dict.keys():
+			index_figure_pdf = p
+			index_figure_latex = dict[p][0]
+
+			figure_pdf = list_pdf[index_figure_pdf]
+			figure_latex = list_latex[index_figure_latex]
+
+			id = figure_pdf.identifier
+			s_d = figure_pdf.source_document
+			c = figure_pdf.caption
+			c_f = figure_pdf.caption_file
+			f = figure_pdf.files
+			l = figure_pdf.location
+			c_l = figure_pdf.caption_location
+			a_i = figure_pdf.annotated_image
+
+			for index, a_file in enumerate(figure_latex.files):
+				if index != 0:
+					f.append(a_file)
+			s = figure_latex.status
+			t_r = figure_latex.text_references
+			is_p = "is parent"
+			figures.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i, status=s, text_references=t_r, is_parent=is_p))
+
+			count = 1
+			for l in dict[p]:
+				figure_latex = list_latex[l]
+				id = figure_pdf.identifier
+				c = figure_pdf.caption
+				f = figure_latex.files	
+				s = figure_latex.status
+				t_r = figure_latex.text_references
+				s_f = "is subfigure of"
+				s_id = count
+				figures.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r, subfigure=s_f, subfigure_id = s_id))
+				count = count + 1
+				merge_tuples.remove((l,p))
+
+	for index, t in enumerate(merge_tuples):
 		index_figure_latex = t[0]
 		index_figure_pdf = t[1]
 		
@@ -262,7 +333,7 @@ def doMerging(tuples, list_latex, list_pdf):
 		figures.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i, status=s, text_references=t_r))
 	
 	for index, figure in enumerate(list_latex):
-		if index_not_in_tuples(index, tuples):
+		if index_not_in_tuples(index, tuples, "latex"):
 			id = figure.identifier
 			c = figure.caption
 			f = figure.files
@@ -271,7 +342,7 @@ def doMerging(tuples, list_latex, list_pdf):
 			figures.append(Figure(identifier=id, caption=c, files=f, status=s, text_references=t_r))
 		
 	for index, figure in enumerate(list_pdf):
-		if index_not_in_tuples(index, tuples):
+		if index_not_in_tuples(index, tuples, "pdf"):
 			id = figure.identifier
 			s_d = figure.source_document
 			c = figure.caption
@@ -283,7 +354,7 @@ def doMerging(tuples, list_latex, list_pdf):
 			figures.append(Figure(identifier=id, source_document=s_d, caption=c, caption_file=c_f, files=f, location=l, caption_location=c_l, annotated_image=a_i))
 
 	return figures
-		
+
 
 def get_captions(list_latex, list_pdf):
 	"""
@@ -309,9 +380,19 @@ def get_captions(list_latex, list_pdf):
 		# remove all spaces and new lines and tabs from the beginning, then if a line contains \n, replace with space
 		caption = caption.lstrip().replace('\n', ' ')
 		update_list_latex[index].caption = caption
-		# when encounter at the beginning the regular expresion: number => skip
+		# skip the figure number
 		#ur UNICODE RAW
 		caption = re.sub(ur'^[\d]+ ', '', caption)
+		# ignore unicode chars
+		caption = caption.encode('ascii', 'ignore')
+		# ignore some \\ fields
+		caption = re.sub(r'\\[a-z]+','',caption)
+		# delete special chars 
+		for char in caption:
+			if char in ' _^${}[]':
+				caption = caption.replace(char,'')
+		# convert again to unicode
+		unicode(caption)
 		caption_list_latex[index] = caption
 		
 	# Transformations (special characters and newlines)
@@ -320,10 +401,17 @@ def get_captions(list_latex, list_pdf):
 		caption = caption.lstrip().replace('\n', ' ')
 		caption = strip_control_characters(caption)
 		update_list_pdf[index].caption = caption
-		# when encounter at the beginning the regular expresion: Fig. number. => skip
+		# Skip Fig. number. at the beginning
 		#ur UNICODE RAW
 		caption = re.sub(ur'^Fig\. [\d]+\. ', '', caption)
 		caption = re.sub(ur'^Figure [\d]+\: ', '', caption)
+
+		#encode to ascii for eliminating unicode chars
+		caption = caption.encode('ascii','ignore')
+		caption = caption.replace(' ','')
+		#reconvert to unicode
+		unicode(caption)
+		caption_list_pdf[index] = caption
 
 	return (caption_list_latex, caption_list_pdf, update_list_latex, update_list_pdf)
 
@@ -344,23 +432,77 @@ def doMatching(list_latex, list_pdf):
 
 	caption_list_latex, caption_list_pdf, update_list_latex, update_list_pdf = get_captions(list_latex, list_pdf)
 
-	min_distance = margin_coefficient = 10000
-	index = 0
+	
 	for index_latex, caption_latex in enumerate(caption_list_latex):
+		min_distance = margin_coefficient = 10000
+		index = 0
 		for index_pdf, caption_pdf in enumerate(caption_list_pdf):
 			#the smallest distance
 			distance = levenshtein(caption_latex, caption_pdf)
-			#write_message("Distance %d" % distance)
+			write_message("(%d, %d) Distance %d" %(index_latex, index_pdf, distance))
+			print("(%d, %d) Distance %d" %(index_latex, index_pdf, distance))
 			if distance < min_distance:
 				min_distance = distance
-				#margin_coefficient = 10 %
-				margin_coefficient = ( 10 * len(caption_pdf) ) / 100
+				if (len(caption_pdf) != 0):
+					#margin_coefficient = 15 %
+					margin_coefficient = int(( 15 * len(caption_pdf) ) / 100)
+				else:
+					margin_coeffieicnt = min_distance
+				write_message("Margin coefficient: %d"%margin_coefficient)
+				print("Margin coefficient: %d"%margin_coefficient)
+				#write_message(margin_coefficient)
 				index = index_pdf
 		if min_distance < margin_coefficient:
 			tuples.append((index_latex, index))
 
 	return (tuples, update_list_latex, update_list_pdf)
 
+
+def index_not_in_tuples(index, tuples, mode):
+	"""
+	Function that check if an index is in tuples
+
+	@param index
+	@param tuples
+	@param mode - latex, pdf
+
+	return 0 it is, 1 it's not
+	"""
+	for t in tuples:
+		if(mode == "latex"):
+			if(t[0] == index):
+				return 0
+		if(mode == "pdf"):
+			if(t[1] == index):
+				return 0
+	return 1
+
+
+def pdf_is_in_multiple_tuples(tuples):
+	"""
+	Function that checks if a pdf is in multiple tuples
+	
+	@param tuples: the list of tuples
+
+	@return: a dictionary of pdf with his latex associations
+	Example: {pdf:[latex, latex, latex, ...], pdf:[latex, latex, latex, ...], ...}
+	"""
+	dict = {}
+	if len(tuples) == 0:
+		return dict
+	l, p = max(tuples)
+	for i in range(p+1):
+		list = []
+		count = 0
+		index_pdf = 0
+		for t in tuples:
+			if(t[1] == i):
+				list.append(t[0])
+				index_pdf = t[1]
+				count = count + 1
+		if count > 1 :
+			dict[index_pdf] = list
+	return dict
 
 def similarity(list_latex, list_pdf):
 	"""

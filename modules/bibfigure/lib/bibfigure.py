@@ -8,7 +8,7 @@ from invenio.bibtask import write_message
 
 # The class containing the info
 class Figure:
-	def __init__(self, identifier=None, source_document=None, caption=None, caption_file=None, files=None, location=None, caption_location=None, annotated_image=None, status=None, text_references=None):
+	def __init__(self, identifier=None, source_document=None, caption=None, caption_file=None, files=None, location=None, caption_location=None, annotated_image=None, status=None, text_references=None, is_parent=None, subfigure=None, subfigure_id=None):
 		self.identifier = identifier
 		self.source_document = source_document
 		self.caption = caption
@@ -19,6 +19,9 @@ class Figure:
 		self.annotated_image = annotated_image
 		self.status = status
 		self.text_references = text_references
+		self.is_parent = is_parent
+		self.subfigure = subfigure
+		self.subfigure_id = subfigure_id
 	
 	def get_location(self, i):
 		if i==0:
