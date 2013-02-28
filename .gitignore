@@ -51,6 +51,7 @@ modules/oairepository/bin/oairepositoryupdater
 modules/bibindex/bin/bibindex
 modules/bibindex/bin/bibstat
 modules/bibmatch/bin/bibmatch
+modules/bibfigure/bin/bibfigure
 modules/bibrank/bin/bibrank
 modules/bibrank/bin/bibrankgkb
 modules/bibrank/etc/bibrankgkb.cfg

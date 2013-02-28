@@ -29,7 +29,7 @@ import re
 
 from tempfile import NamedTemporaryFile
 from invenio.webinterface_handler import WebInterfaceDirectory
-
+from invenio.config import CFG_TMPDIR, CFG_PREFIX
 from invenio.webuser import collect_user_info
 from invenio.webpage import page
 from invenio.config import CFG_TMPSHAREDDIR, CFG_ETCDIR, CFG_PDFPLOTEXTRACTOR_PATH, \
@@ -44,7 +44,7 @@ from invenio.bibformat_engine import format_record
 
 
 from invenio.shellutils import run_shell_command
-from invenio.bibfigure_merge import merging_articles, \
+from invenio.bibfigure_merge import merging_latex_pdf, \
                               create_MARCXML
 
 
@@ -183,7 +183,7 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
         plots = None
         list_image_names = []
         list_caption = []
-        plots_dir = "/opt/invenio/var/www/img/plots/"
+        plots_dir = os.path.join(CFG_PREFIX, "var/www/img/plots/")
         # unique folder name
         # Handle the 3 POST parameters
         if 'pdf' in form and form['pdf'].value:
@@ -231,10 +231,21 @@ class WebInterfaceDocExtract(WebInterfaceDirectory):
             plots += 'TAR: ' + plotextracted_xml_path + '<br />'
             plots += 'PDF: ' + plotextracted_pdf_path + '<br />'
             
-            
-            code, figures, extracted = merging_articles(plotextracted_xml_path, None)
+           
+	    '''
+	    code, figures, extracted = merging_latex_pdf(plotextracted_xml_path, None, "", )
             id_fulltext = ""
             marc_path = create_MARCXML(figures, id_fulltext, code, extracted, write_file=True)
+	    '''
+	    dest_dir = os.path.join(CFG_TMPDIR, 'textmining')
+	    try:
+		os.mkdir(dest_dir)
+	    except OSError:
+		pass
+	    code, message, figures, marc_path = merging_latex_pdf(plotextracted_xml_path, "", "", dest_dir)
+
+
+
             plots += 'OUTPUT: ' + marc_path + '<br />'
 
             f = open (marc_path, 'r')

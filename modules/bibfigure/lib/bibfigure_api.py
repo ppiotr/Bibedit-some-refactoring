@@ -19,13 +19,13 @@
 
 import os
 
-from bibfigure_merge import merging_articles, \
+from bibfigure_merge import merging_latex_pdf, \
                             create_MARCXML
 from invenio.config import CFG_BINDIR, \
                            CFG_PDFPLOTEXTRACTOR_PATH
 from invenio.bibdocfile import download_url, safe_mkstemp
 from invenio.shellutils import run_shell_command
-from invenio.bibfigure_api import plotextracted_pdf_path
+
 
 def extract_plots_from_latex_and_pdf(url_tarball, url_pdf):
     tarball = download_url(url_tarball)
